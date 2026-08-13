@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from "vue";
 import type {
-  ClassAggregateStatsView,
   CourseHomeSummaryView,
   HomeworkListView,
   KnowledgePointMasteryView,
@@ -14,7 +13,8 @@ import HomeworkCard from "./HomeworkCard.vue";
 import ProgressBar from "./ProgressBar.vue";
 import MetricCard from "./MetricCard.vue";
 import {
-  formatDate,
+  formatDateTime,
+  formatMasteryEvidenceResult,
   formatMasteryLevel,
   formatPercentage,
 } from "../modules/display-rules";
@@ -51,9 +51,6 @@ const summaryResource = useAsyncResource<CourseHomeSummaryView>((error) =>
 const homeworkResource = useAsyncResource<HomeworkListView>((error) =>
   mapResourceError(error, "您不是该班级的正式成员，无法查看作业列表", "加载作业列表失败，请稍后重试"),
 );
-const aggregateStatsResource = useAsyncResource<ClassAggregateStatsView>((error) =>
-  mapResourceError(error, "您不是该班级的正式成员，无法查看班级统计", "加载班级统计失败，请稍后重试"),
-);
 
 const courseHomeSummary = summaryResource.data;
 const loadingSummary = summaryResource.loading;
@@ -61,9 +58,6 @@ const summaryError = summaryResource.error;
 const homeworkList = homeworkResource.data;
 const loadingHomework = homeworkResource.loading;
 const homeworkError = homeworkResource.error;
-const classAggregateStats = aggregateStatsResource.data;
-const loadingAggregateStats = aggregateStatsResource.loading;
-const aggregateStatsError = aggregateStatsResource.error;
 
 const knowledgePoints = computed(() =>
   courseHomeSummary.value?.masterySummary?.knowledgePoints ?? [],
@@ -85,20 +79,47 @@ const getMasteryTagClass = (level: KnowledgePointMasteryView["masteryLevel"]): s
   return "neutral";
 };
 
+const formatKnowledgePoint = (knowledgePoint: string): string => {
+  const normalized = knowledgePoint.trim();
+  return /^\d+$/.test(normalized)
+    ? `未命名知识点（编号 ${normalized}）`
+    : normalized;
+};
+
+const formatMasteryScore = (score: number): string =>
+  Number.isInteger(score) ? String(score) : score.toFixed(1);
+
 const getKnowledgePointEvidence = (kp: KnowledgePointMasteryView): string => {
   if (!kp.latestEvidence) return "暂无有效证据";
 
-  const questionId = kp.latestEvidence.questionId || "未知题目";
-  const resultType = kp.latestEvidence.resultType || "未知结果";
-  const createdAt = formatDate(kp.latestEvidence.createdAt, "未知时间");
-  return `${questionId} · ${resultType} · ${createdAt}`;
+  const questionTitle = typeof kp.latestEvidence.questionTitle === "string"
+    ? kp.latestEvidence.questionTitle
+    : "相关练习";
+  const resultType = typeof kp.latestEvidence.resultType === "string"
+    ? kp.latestEvidence.resultType
+    : "";
+  const resultLabel = formatMasteryEvidenceResult(resultType);
+  const createdAt = formatDateTime(kp.latestEvidence.createdAt, "未知时间");
+  return `${questionTitle} · ${resultLabel} · ${createdAt}`;
+};
+
+const getLatestEvidenceQuestionId = (kp: KnowledgePointMasteryView): string | null => {
+  const questionId = kp.latestEvidence?.questionId;
+  return typeof questionId === "string" && questionId.trim() ? questionId : null;
+};
+
+const getMasteryActionLabel = (kp: KnowledgePointMasteryView): string =>
+  kp.masteryLevel === "consolidating" ? "重新练习" : "打开最近练习";
+
+const openLatestEvidence = (kp: KnowledgePointMasteryView): void => {
+  const questionId = getLatestEvidenceQuestionId(kp);
+  if (questionId) emit("openContent", questionId);
 };
 
 const loadOverviewData = async (): Promise<void> => {
   await Promise.all([
     summaryResource.execute(() => props.session.getCourseHomeSummary(props.selectedClass.id)),
     homeworkResource.execute(() => props.session.listHomeworkForLearner(props.selectedClass.id)),
-    aggregateStatsResource.execute(() => props.session.getClassAggregateStats(props.selectedClass.id)),
   ]);
 };
 
@@ -116,9 +137,9 @@ watch(() => props.refreshToken, loadOverviewData);
     </header>
 
     <AsyncViewState
-      :loading="loadingSummary || loadingHomework || loadingAggregateStats"
-      :error="summaryError ?? homeworkError ?? aggregateStatsError"
-      :empty="!(courseHomeSummary || homeworkList || classAggregateStats)"
+      :loading="loadingSummary || loadingHomework"
+      :error="summaryError ?? homeworkError"
+      :empty="!(courseHomeSummary || homeworkList)"
       loading-title="加载中..."
       loading-detail="正在获取学习概览数据，请稍候"
       empty-title="暂无学习数据"
@@ -135,7 +156,52 @@ watch(() => props.refreshToken, loadOverviewData);
       </section>
 
       <div class="overview-grid">
-        <section class="card panel">
+        <section class="card panel mastery-card">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">答题证据</p>
+              <h2>知识点掌握</h2>
+            </div>
+            <span class="tag learner good">{{ courseHomeSummary?.masterySummary?.totalKnowledgePoints ?? 0 }} 个知识点</span>
+          </div>
+
+          <div v-if="knowledgePoints.length > 0" class="knowledge-list">
+            <article v-for="knowledgePoint in knowledgePoints" :key="knowledgePoint.knowledgePoint" class="knowledge-item">
+              <div class="knowledge-heading">
+                <div class="knowledge-name">
+                  <span class="knowledge-label">知识点标签</span>
+                  <strong>{{ formatKnowledgePoint(knowledgePoint.knowledgePoint) }}</strong>
+                </div>
+                <span class="tag learner" :class="getMasteryTagClass(knowledgePoint.masteryLevel)">
+                  {{ formatMasteryLevel(knowledgePoint.masteryLevel) }}
+                </span>
+              </div>
+              <div class="knowledge-facts">
+                <span>综合加权分 <strong>{{ formatMasteryScore(knowledgePoint.weightedScore) }}</strong></span>
+                <span>有效证据 <strong>{{ knowledgePoint.recentEvidenceCount }} 条</strong></span>
+                <span>首次答对 <strong>{{ knowledgePoint.firstCorrectCount }} 题</strong></span>
+              </div>
+              <ProgressBar :value="getMasteryProgress(knowledgePoint.weightedScore)" label="加权分参考进度" />
+              <div class="evidence-row">
+                <span>{{ getKnowledgePointEvidence(knowledgePoint) }}</span>
+                <strong>{{ knowledgePoint.recentEvidenceCount }} 条证据</strong>
+              </div>
+              <div v-if="getLatestEvidenceQuestionId(knowledgePoint)" class="knowledge-actions">
+                <span class="knowledge-action-hint">进入题目后，可使用小D解释或引导思考</span>
+                <button class="button secondary knowledge-action" type="button" @click="openLatestEvidence(knowledgePoint)">
+                  {{ getMasteryActionLabel(knowledgePoint) }}
+                </button>
+              </div>
+            </article>
+          </div>
+          <p v-else class="muted empty-copy">暂无掌握度数据，请完成相关练习获取掌握度评估。</p>
+
+          <p v-if="courseHomeSummary?.masterySummary?.nextSuggestion" class="mastery-note">
+            <strong>复习建议：</strong>{{ courseHomeSummary.masterySummary.nextSuggestion }}
+          </p>
+        </section>
+
+        <section class="card panel homework-card">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">学习任务</p>
@@ -157,86 +223,22 @@ watch(() => props.refreshToken, loadOverviewData);
           <p v-else class="muted empty-copy">当前没有作业。加入教学班后可接收教师布置的作业。</p>
         </section>
 
-        <section class="card panel simulation-card">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">实训证据</p>
-              <h2>仿真实训</h2>
-            </div>
-            <span class="tag learner">暂无数据</span>
+        <section v-if="courseHomeSummary?.nextContent || courseHomeSummary?.nextSuggestions?.length" class="suggestion-card">
+          <div>
+            <p class="eyebrow">下一步建议</p>
+            <h2>{{ courseHomeSummary?.nextContent?.title || "继续巩固当前课程" }}</h2>
+            <p>{{ courseHomeSummary?.nextSuggestions?.[0] || "完成下一项课程内容，再通过练习检验理解。" }}</p>
           </div>
-          <div class="simulation-placeholder">
-            <strong>Webots 仿真环境未配置</strong>
-            <p>当前仅展示不可用骨架，不包含实训任务或结果。</p>
-          </div>
-          <p class="muted helper-copy">仿真实训的结构化证据会进入教师分析，原始伴学聊天不会。</p>
+          <button
+            v-if="courseHomeSummary?.nextContent"
+            class="button"
+            type="button"
+            @click="emit('openContent', courseHomeSummary.nextContent.id)"
+          >
+            继续学习
+          </button>
         </section>
       </div>
-
-      <section v-if="courseHomeSummary?.nextContent || courseHomeSummary?.nextSuggestions?.length" class="suggestion-card">
-        <div>
-          <p class="eyebrow">下一步建议</p>
-          <h2>{{ courseHomeSummary?.nextContent?.title || "继续巩固当前课程" }}</h2>
-          <p>{{ courseHomeSummary?.nextSuggestions?.[0] || "完成下一项课程内容，再通过练习检验理解。" }}</p>
-        </div>
-        <button
-          v-if="courseHomeSummary?.nextContent"
-          class="button"
-          type="button"
-          @click="emit('openContent', courseHomeSummary.nextContent.id)"
-        >
-          继续学习
-        </button>
-      </section>
-
-      <section class="card panel mastery-card">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">掌握依据</p>
-            <h2>知识点掌握</h2>
-          </div>
-          <span class="tag learner good">{{ courseHomeSummary?.masterySummary?.totalKnowledgePoints ?? 0 }} 个知识点</span>
-        </div>
-
-        <div v-if="knowledgePoints.length > 0" class="knowledge-list">
-          <article v-for="knowledgePoint in knowledgePoints" :key="knowledgePoint.knowledgePoint" class="knowledge-item">
-            <div class="knowledge-heading">
-              <strong>{{ knowledgePoint.knowledgePoint }}</strong>
-              <span class="tag learner" :class="getMasteryTagClass(knowledgePoint.masteryLevel)">
-                {{ formatMasteryLevel(knowledgePoint.masteryLevel) }}
-              </span>
-            </div>
-            <ProgressBar :value="getMasteryProgress(knowledgePoint.weightedScore)" label="知识点掌握进度" />
-            <div class="evidence-row">
-              <span>{{ getKnowledgePointEvidence(knowledgePoint) }}</span>
-              <strong>{{ knowledgePoint.recentEvidenceCount }} 条证据</strong>
-            </div>
-          </article>
-        </div>
-        <p v-else class="muted empty-copy">暂无掌握度数据，请完成相关练习获取掌握度评估。</p>
-
-        <p v-if="courseHomeSummary?.masterySummary?.nextSuggestion" class="mastery-note">
-          <strong>复习建议：</strong>{{ courseHomeSummary.masterySummary.nextSuggestion }}
-        </p>
-      </section>
-
-      <section v-if="classAggregateStats" class="card panel class-context-card">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">班级背景</p>
-            <h2>班级学习概况</h2>
-          </div>
-          <span class="tag learner">匿名聚合</span>
-        </div>
-        <div v-if="classAggregateStats.insufficientSample || classAggregateStats.noData" class="notice-box">
-          暂无足够的班级数据生成有效统计。
-        </div>
-        <div v-else class="class-stats">
-          <div><strong>{{ classAggregateStats.totalMembers }}</strong><span>班级成员</span></div>
-          <div><strong>{{ formatPercentage(classAggregateStats.contentCompletionRate) }}</strong><span>平均完成进度</span></div>
-          <div><strong>{{ classAggregateStats.atLeastOneCompleted }}</strong><span>至少完成一项</span></div>
-        </div>
-      </section>
       </div>
     </AsyncViewState>
   </section>
@@ -279,18 +281,7 @@ watch(() => props.refreshToken, loadOverviewData);
 
 .overview-grid {
   display: grid;
-  gap: 14px;
-}
-
-.overview-grid {
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-}
-
-.suggestion-card {
-  border: 1px solid #dce3de;
-  border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 10px 26px rgb(23 57 44 / 5%);
+  gap: 18px;
 }
 
 .panel-heading {
@@ -326,8 +317,68 @@ watch(() => props.refreshToken, loadOverviewData);
 }
 
 .homework-list :deep(.homework-item) {
-  padding: 15px;
+  padding: 14px 15px;
   border-radius: 13px;
+}
+
+.homework-list :deep(.homework-header) {
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.homework-list :deep(.homework-header h3) {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.homework-list :deep(.homework-type-badge) {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.homework-list :deep(.homework-body) {
+  margin-bottom: 8px;
+}
+
+.homework-list :deep(.homework-description) {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-bottom: 6px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.homework-list :deep(.homework-meta) {
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-bottom: 0;
+}
+
+.homework-list :deep(.homework-due) {
+  font-size: 12px;
+}
+
+.homework-list :deep(.homework-time) {
+  white-space: nowrap;
+}
+
+.homework-list :deep(.homework-footer) {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.homework-list :deep(.homework-status),
+.homework-list :deep(.homework-score) {
+  font-size: 12px;
 }
 
 .helper-copy,
@@ -341,31 +392,17 @@ watch(() => props.refreshToken, loadOverviewData);
   margin: 0;
 }
 
-.simulation-placeholder {
-  display: grid;
-  min-height: 126px;
-  place-items: center;
-  padding: 20px;
-  border-radius: 13px;
-  color: #416055;
-  background: #f4f7f4;
-  text-align: center;
-}
-
-.simulation-placeholder p {
-  margin: 5px 0 0;
-  color: #687970;
-  font-size: 13px;
-}
-
 .suggestion-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
   padding: 22px;
+  border: 1px solid #dce3de;
+  border-radius: 18px;
   color: #ffffff;
   background: linear-gradient(135deg, #146b4a, #1d8059);
+  box-shadow: 0 10px 26px rgb(23 57 44 / 5%);
 }
 
 .suggestion-card h2 {
@@ -379,7 +416,7 @@ watch(() => props.refreshToken, loadOverviewData);
 }
 
 .suggestion-card .button {
-  flex: 0 0 auto;
+  align-self: flex-start;
   color: #17392c;
   background: #f0bd72;
 }
@@ -407,8 +444,7 @@ watch(() => props.refreshToken, loadOverviewData);
 }
 
 .knowledge-heading,
-.evidence-row,
-.class-stats {
+.evidence-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -435,6 +471,28 @@ watch(() => props.refreshToken, loadOverviewData);
   color: #416055;
 }
 
+.knowledge-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.knowledge-action-hint {
+  min-width: 0;
+  overflow: hidden;
+  color: #687970;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knowledge-action {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  font-size: 11px;
+}
+
 .mastery-note {
   margin: 17px 0 0;
   padding: 13px 15px;
@@ -444,57 +502,39 @@ watch(() => props.refreshToken, loadOverviewData);
   line-height: 1.6;
 }
 
-.class-context-card {
-  box-shadow: none;
-}
-
-.class-stats > div {
-  display: grid;
-  gap: 4px;
-  flex: 1;
-  padding: 12px 14px;
-  border-radius: 11px;
-  background: #f4f7f4;
-}
-
-.class-stats strong {
-  color: #146b4a;
-  font-size: 22px;
-}
-
-.class-stats span {
-  color: #687970;
-  font-size: 12px;
-}
-
-.notice-box {
-  padding: 15px;
-  border-radius: 11px;
-  color: #8a5c0d;
-  background: #fff3d6;
-  font-size: 13px;
-}
-
 @media (max-width: 900px) {
-  .metric-grid,
-  .overview-grid {
+  .metric-grid {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 600px) {
-  .suggestion-card,
-  .class-stats {
-    align-items: stretch;
-    flex-direction: column;
-  }
+.knowledge-name {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
 
+.knowledge-label {
+  color: #687970;
+  font-size: 11px;
+}
+
+.knowledge-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: #687970;
+  font-size: 11px;
+}
+
+.knowledge-facts strong {
+  color: #416055;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
   .suggestion-card .button {
     width: 100%;
-  }
-
-  .class-stats > div {
-    flex: auto;
   }
 }
 </style>

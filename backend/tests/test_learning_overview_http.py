@@ -150,7 +150,12 @@ def test_two_learners_see_only_their_own_data_in_home_summary(tmp_path: Path) ->
 
         # 验证完成统计隔离：学习者1已完成1个内容，学习者2未完成
         assert summary1_data["completionStats"]["completedContents"] == 1
-        assert summary1_data["completionStats"]["completionRate"] == 0.25
+        # 作业内嵌题目不属于课程首页的顶层学习内容，完成率分母只统计课件、课堂练习和作业。
+        assert summary1_data["completionStats"]["completionRate"] == 0.33
+        assert len(summary1_data["contentList"]) == 3
+        assert all(item["title"] != "作业题目" for item in summary1_data["contentList"])
+        completed_item = next(item for item in summary1_data["contentList"] if item["id"] == content_id)
+        assert completed_item["completed"] is True
         assert summary2_data["completionStats"]["completedContents"] == 0
         assert summary2_data["completionStats"]["completionRate"] == 0.0
 

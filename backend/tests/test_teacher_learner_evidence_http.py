@@ -121,6 +121,7 @@ def assert_learner_detail_shape(data: dict) -> None:
         if kp["latestEvidence"] is not None:
             assert set(kp["latestEvidence"]) == {
                 "questionId",
+                "questionTitle",
                 "resultType",
                 "createdAt"
             }

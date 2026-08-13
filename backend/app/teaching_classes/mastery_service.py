@@ -248,6 +248,22 @@ class MasteryService:
             # 获取最近证据
             recent_evidence = result.used_evidence[0] if result.used_evidence else None
 
+            # 将掌握度证据中的内部题目 ID 转换为学习者可读的题目正文。
+            question_title = "相关练习"
+            if recent_evidence:
+                question_row = connection.execute(
+                    """
+                    SELECT COALESCE(NULLIF(cq.stem, ''), cc.title) AS question_title
+                    FROM course_contents cc
+                    LEFT JOIN course_content_questions cq ON cq.content_id = cc.id
+                    WHERE cc.id = ? AND cc.class_id = ?
+                    LIMIT 1
+                    """,
+                    (recent_evidence.question_id, class_id),
+                ).fetchone()
+                if question_row and question_row["question_title"]:
+                    question_title = question_row["question_title"]
+
             knowledge_points_detail.append({
                 "knowledgePoint": kp,
                 "masteryLevel": result.mastery_level.value,
@@ -256,7 +272,8 @@ class MasteryService:
                 "firstCorrectCount": result.first_correct_count,
                 "levelChange": result.level_change,
                 "latestEvidence": {
-                    "questionId": recent_evidence.question_id if recent_evidence else "",
+                    "questionId": recent_evidence.question_id,
+                    "questionTitle": question_title,
                     "resultType": recent_evidence.result_type.value if recent_evidence else "",
                     "createdAt": recent_evidence.created_at if recent_evidence else 0
                 } if recent_evidence else None

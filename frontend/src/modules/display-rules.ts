@@ -30,6 +30,13 @@ const MASTERY_LEVEL_LABELS: Record<MasteryLevel, string> = {
   proficient_mastery: "熟练掌握",
 };
 
+const MASTERY_EVIDENCE_RESULT_LABELS: Record<string, string> = {
+  first_correct: "首次答对",
+  hint_correct: "提示后答对",
+  final_wrong: "最终未答对",
+  abandoned: "已放弃",
+};
+
 export const formatContentType = (contentType: ContentType): string =>
   CONTENT_TYPE_LABELS[contentType];
 
@@ -38,6 +45,9 @@ export const formatJoinPolicy = (joinPolicy: JoinPolicy): string =>
 
 export const formatMasteryLevel = (masteryLevel: MasteryLevel): string =>
   MASTERY_LEVEL_LABELS[masteryLevel];
+
+export const formatMasteryEvidenceResult = (resultType: string): string =>
+  MASTERY_EVIDENCE_RESULT_LABELS[resultType] ?? "未知结果";
 
 export const formatPercentage = (ratio: number): string =>
   `${Math.round(ratio * 100)}%`;
@@ -113,13 +123,17 @@ export const formatIntegrationSource = (source: string): string => {
  * 作业状态文案与样式共用同一棵分支树，避免 text/class 两份拷贝漂移。
  * now 为 Unix 秒，由调用方注入（「已截止」判定与后端 service 的 now > due_at 规则同形）。
  */
+export const isHomeworkSubmitted = (
+  submission: HomeworkSubmissionView | undefined,
+): boolean => submission?.status === "submitted";
+
 export const homeworkStatus = (
   homework: Pick<PublishedContentView, "dueAt">,
   submission: HomeworkSubmissionView | undefined,
   now: number,
 ): { text: string; className: string } => {
   if (submission) {
-    if (submission.status === "submitted") {
+    if (isHomeworkSubmitted(submission)) {
       return submission.isLateSubmission
         ? { text: "迟交 · 已批改", className: "status-late" }
         : { text: "已提交 · 已批改", className: "status-submitted" };
