@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeft } from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import AsyncViewState from './AsyncViewState.vue';
 import MetricCard from './MetricCard.vue';
@@ -199,7 +200,8 @@ watch(() => props.classId, (newClassId, oldClassId) => {
         </div>
       </header>
       <button class="link-button back-button" type="button" @click="handleBackToList">
-        ← 返回学习者列表
+        <ArrowLeft class="button-icon" :size="16" :stroke-width="2" aria-hidden="true" />
+        返回学习者列表
       </button>
 
       <section class="teacher-grid">
@@ -784,7 +786,9 @@ watch(() => props.classId, (newClassId, oldClassId) => {
 }
 
 .back-button {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 22px;
 }
 

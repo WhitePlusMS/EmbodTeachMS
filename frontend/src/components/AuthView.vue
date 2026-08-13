@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowRight, GraduationCap, Presentation } from "@lucide/vue";
 import { reactive, ref } from "vue";
 
 import type {
@@ -49,7 +50,7 @@ function submit(): void {
   <main class="auth-layout">
     <section class="auth-intro">
       <div class="brand-lockup">
-        <span class="brand-mark">具</span>
+        <img class="brand-mark" src="/embodteachms-logo.png" alt="" aria-hidden="true" />
         <strong>EmbodTeachMS 具身课堂</strong>
       </div>
       <p class="eyebrow">从知识理解到可靠行动</p>
@@ -78,12 +79,14 @@ function submit(): void {
           :aria-pressed="form.role === 'learner'"
           @click="form.role = 'learner'"
         >
-          <span class="role-icon" aria-hidden="true">学</span>
+          <span class="role-icon" aria-hidden="true">
+            <GraduationCap :size="22" :stroke-width="1.8" aria-hidden="true" />
+          </span>
           <span>
             <strong>学习者</strong><br />
             <small class="muted">默认自学学生，可通过邀请码加入教学班</small>
           </span>
-          <span aria-hidden="true">→</span>
+          <ArrowRight class="button-icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
         </button>
         <button
           class="role-option"
@@ -92,12 +95,14 @@ function submit(): void {
           :aria-pressed="form.role === 'teacher'"
           @click="form.role = 'teacher'"
         >
-          <span class="role-icon" aria-hidden="true">教</span>
+          <span class="role-icon" aria-hidden="true">
+            <Presentation :size="22" :stroke-width="1.8" aria-hidden="true" />
+          </span>
           <span>
             <strong>教师</strong><br />
             <small class="muted">创建教学班并查看分析</small>
           </span>
-          <span aria-hidden="true">→</span>
+          <ArrowRight class="button-icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
         </button>
       </div>
 

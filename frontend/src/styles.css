@@ -23,6 +23,42 @@
   box-sizing: border-box;
 }
 
+.app-shell {
+  --site-footer-height: 48px;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.app-shell > .auth-layout {
+  min-height: calc(100vh - var(--site-footer-height));
+}
+
+.app-shell > .workbench {
+  min-height: 100vh;
+}
+
+.app-shell > .centered-state,
+.app-shell > .operational-state {
+  flex: 1;
+}
+
+.site-footer {
+  display: flex;
+  min-height: var(--site-footer-height);
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-top: 1px solid #dce5de;
+  color: #77847d;
+  background: #f3f5f2;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -89,9 +125,9 @@ button:disabled {
   height: 38px;
   place-items: center;
   border-radius: 12px;
-  color: #17392c;
-  background: #e4b56e;
-  font-weight: 900;
+  overflow: hidden;
+  object-fit: contain;
+  background: #123b2c;
 }
 
 .auth-intro h1 {
@@ -260,6 +296,9 @@ select:focus {
 }
 
 .link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 0;
   border: 0;
   color: var(--green);
@@ -303,6 +342,25 @@ select:focus {
   font-weight: 800;
 }
 
+.button-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: -0.2em;
+}
+
+/* 紧凑文本操作按钮：仅用于带有 .button 的操作入口，不影响登录页整行文字链接。 */
+.button.text-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 30px;
+  margin-top: 0;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
 .form-notice {
   margin-top: 18px;
   padding: 12px 14px;
@@ -316,12 +374,14 @@ select:focus {
   display: grid;
   min-height: 100vh;
   grid-template-columns: 248px minmax(0, 1fr);
+  position: relative;
 }
 
 .sidebar {
   position: sticky;
   top: 0;
   height: 100vh;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   padding: 26px 18px;
@@ -345,6 +405,10 @@ select:focus {
   color: #cce0d5;
   background: transparent;
   text-align: left;
+}
+
+.nav-icon {
+  flex: 0 0 auto;
 }
 
 .nav-item.active {
@@ -405,6 +469,9 @@ select:focus {
 
 .workspace-main {
   min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   padding: 0 34px 90px;
 }
 
@@ -422,7 +489,13 @@ select:focus {
 }
 
 .workspace-content {
+  flex: 1;
   padding-top: 26px;
+}
+
+.workspace-main > .site-footer {
+  flex-shrink: 0;
+  margin: 0 -34px -90px;
 }
 
 .notice-banner {
@@ -1074,6 +1147,10 @@ select:focus {
 
   .workspace-main {
     padding: 0 18px 80px;
+  }
+
+  .workspace-main > .site-footer {
+    margin: 0 -18px -80px;
   }
 
   .topbar {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ArrowLeft, House, LibraryBig } from "@lucide/vue";
+
 import type { UserRole } from "../api/client";
 import {
   LEARNER_CLASS_NAVIGATION,
@@ -30,8 +32,8 @@ const emit = defineEmits<{
 <template>
   <aside class="sidebar">
     <div class="brand-lockup compact">
-      <span class="brand-mark">具</span>
-      <strong>课程智能体</strong>
+      <img class="brand-mark" src="/embodteachms-logo.png" alt="" aria-hidden="true" />
+      <strong>EmbodTeachMS 具身课堂</strong>
     </div>
 
     <nav
@@ -48,16 +50,18 @@ const emit = defineEmits<{
         :aria-current="teacherActiveNav === 'overview' || teacherActiveNav === 'knowledge-bases' ? 'page' : undefined"
         @click="emit('openCourses')"
       >
-        <span aria-hidden="true">⌂</span>我的课程
+        <House class="nav-icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
+        我的课程
       </button>
       <button v-else v-for="item in workspaceNavigation" :key="item" class="nav-item active" type="button">
-        <span aria-hidden="true">⌂</span>{{ item }}
+        <House class="nav-icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
+        {{ item }}
       </button>
     </nav>
 
     <nav v-else-if="userRole === 'learner'" class="sidebar-nav class-nav" aria-label="当前课程导航">
       <button class="nav-item back-nav" type="button" @click="emit('leaveLearnerClass')">
-        <span aria-hidden="true">←</span>
+        <ArrowLeft class="nav-icon" :size="17" :stroke-width="1.8" aria-hidden="true" />
         返回我的课程
       </button>
       <p class="nav-section-title">课程空间</p>
@@ -70,18 +74,18 @@ const emit = defineEmits<{
         :aria-current="learnerActiveNav === item.id ? 'page' : undefined"
         @click="emit('navigateLearner', item.id)"
       >
-        <span aria-hidden="true">{{ item.icon }}</span>
+        <component :is="item.icon" class="nav-icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
         {{ item.label }}
       </button>
     </nav>
 
     <nav v-else class="sidebar-nav class-nav" aria-label="教学班导航">
       <button class="nav-item back-nav" type="button" @click="emit('leaveTeachingClass')">
-        <span aria-hidden="true">←</span>
+        <ArrowLeft class="nav-icon" :size="17" :stroke-width="1.8" aria-hidden="true" />
         返回我的课程
       </button>
       <button class="nav-item back-nav" type="button" @click="emit('openKnowledgeBase')">
-        <span aria-hidden="true">▤</span>
+        <LibraryBig class="nav-icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
         知识库管理
       </button>
       <p class="nav-section-title">课程空间</p>
@@ -94,7 +98,7 @@ const emit = defineEmits<{
         :aria-current="teacherActiveNav === item.id ? 'page' : undefined"
         @click="emit('navigateTeacher', item.id)"
       >
-        <span aria-hidden="true">{{ item.icon }}</span>
+        <component :is="item.icon" class="nav-icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
         {{ item.label }}
       </button>
       <p class="nav-section-title management-title">班级管理</p>
@@ -107,7 +111,7 @@ const emit = defineEmits<{
         :aria-current="teacherActiveNav === item.id ? 'page' : undefined"
         @click="emit('navigateTeacher', item.id)"
       >
-        <span aria-hidden="true">{{ item.icon }}</span>
+        <component :is="item.icon" class="nav-icon" :size="18" :stroke-width="1.8" aria-hidden="true" />
         {{ item.label }}
       </button>
     </nav>

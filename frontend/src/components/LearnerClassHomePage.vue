@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Plus } from "@lucide/vue";
 import { ref } from "vue";
 import type {
   DiscoverableClassView,
@@ -95,7 +96,7 @@ const handleJoinByAuthorizationCode = (): void => {
           type="button"
           @click="showJoinForm = true"
         >
-          <span class="add-mark" aria-hidden="true">＋</span>
+          <Plus class="add-mark" :size="30" :stroke-width="1.7" aria-hidden="true" />
           <strong>通过邀请码加入教学班</strong>
           <span>输入教师提供的邀请码，生成班级课程卡片</span>
         </button>
@@ -286,9 +287,8 @@ const handleJoinByAuthorizationCode = (): void => {
 }
 
 .add-mark {
+  display: block;
   color: #146b4a;
-  font-size: 32px;
-  font-weight: 300;
 }
 
 .course-add strong {

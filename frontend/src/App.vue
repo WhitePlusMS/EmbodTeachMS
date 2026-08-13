@@ -14,6 +14,7 @@ import {
 } from "./api/bootstrap";
 import { ApiError } from "./api/transport";
 import AuthView from "./components/AuthView.vue";
+import SiteFooter from "./components/SiteFooter.vue";
 import StatusPanel from "./components/StatusPanel.vue";
 
 // 登录页是默认入口。工作区包含教师、学习者、知识库和备课等完整业务链路，
@@ -132,39 +133,42 @@ onMounted(async () => {
 </script>
 
 <template>
-  <StatusPanel
-    v-if="phase === 'loading'"
-    class="centered-state"
-    variant="loading"
-    title="正在恢复登录状态"
-    detail="请稍候…"
-  />
-  <AuthView
-    v-else-if="phase === 'auth'"
-    :busy="busy"
-    :notice="notice"
-    @login="handleLogin"
-    @register="handleRegister"
-  />
-  <WorkspaceViewComponent
-    v-else-if="user !== null && workspace !== null"
-    :user="user"
-    :workspace="workspace"
-    :access-token="accessToken"
-    @session-ended="clearSession"
-    @operational-error="showOperationalError"
-  />
-  <main
-    v-else-if="phase === 'status' && operationalStatus !== null"
-    class="operational-state"
-  >
+  <div class="app-shell">
     <StatusPanel
-      :variant="operationalStatus.variant"
-      :title="operationalStatus.title"
-      :detail="operationalStatus.detail"
+      v-if="phase === 'loading'"
+      class="centered-state"
+      variant="loading"
+      title="正在恢复登录状态"
+      detail="请稍候…"
     />
-    <button class="button secondary" type="button" @click="clearSession()">
-      返回登录
-    </button>
-  </main>
+    <AuthView
+      v-else-if="phase === 'auth'"
+      :busy="busy"
+      :notice="notice"
+      @login="handleLogin"
+      @register="handleRegister"
+    />
+    <WorkspaceViewComponent
+      v-else-if="user !== null && workspace !== null"
+      :user="user"
+      :workspace="workspace"
+      :access-token="accessToken"
+      @session-ended="clearSession"
+      @operational-error="showOperationalError"
+    />
+    <main
+      v-else-if="phase === 'status' && operationalStatus !== null"
+      class="operational-state"
+    >
+      <StatusPanel
+        :variant="operationalStatus.variant"
+        :title="operationalStatus.title"
+        :detail="operationalStatus.detail"
+      />
+      <button class="button secondary" type="button" @click="clearSession()">
+        返回登录
+      </button>
+    </main>
+    <SiteFooter v-if="user === null || workspace === null" />
+  </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowRight } from '@lucide/vue';
 import { computed, onMounted, watch } from 'vue';
 import StatusPanel from './StatusPanel.vue';
 import AsyncViewState from './AsyncViewState.vue';
@@ -237,10 +238,11 @@ watch(() => props.selectedClassId, () => {
         <div class="learners-header">
           <h3>学习者</h3>
           <button class="link-button" type="button" @click="handleViewAllLearners">
-            全部学习者 →
+            全部学习者
+            <ArrowRight class="button-icon" :size="16" :stroke-width="2" aria-hidden="true" />
           </button>
         </div>
-        <TeacherDataTable v-if="learnerPreviews.length > 0" :min-width="680">
+        <TeacherDataTable v-if="learnerPreviews.length > 0" :min-width="680" cell-align="center">
           <template #head>
               <tr><th>姓名</th><th>课件进度</th><th>掌握状态</th><th>最近活动</th><th>操作</th></tr>
           </template>

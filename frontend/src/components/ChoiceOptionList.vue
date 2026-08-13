@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Check, X } from "@lucide/vue";
 import { formatChoiceOptionLabel } from "../modules/choice-answers";
 
 // 选择题选项列表：作业提交、课堂练习和基准练习面板共用。
@@ -10,7 +11,7 @@ const props = withDefaults(defineProps<{
   singleChoice: boolean;
   selectedAnswers: number[];
   correctAnswers: number[];
-  // 是否展示判分结果（正确/错误样式与 ✓/✗ 图标，并禁用交互）
+  // 是否展示判分结果（正确/错误样式与图标，并禁用交互）
   revealed: boolean;
   variant?: "default" | "compact";
 }>(), {
@@ -50,8 +51,8 @@ const emit = defineEmits<{
         {{ option }}
       </div>
       <div class="option-status">
-        <span v-if="props.revealed && props.correctAnswers.includes(index)" class="correct-icon">✓</span>
-        <span v-if="props.revealed && props.selectedAnswers.includes(index) && !props.correctAnswers.includes(index)" class="incorrect-icon">✗</span>
+        <Check v-if="props.revealed && props.correctAnswers.includes(index)" class="correct-icon" :size="18" :stroke-width="2.4" aria-hidden="true" />
+        <X v-if="props.revealed && props.selectedAnswers.includes(index) && !props.correctAnswers.includes(index)" class="incorrect-icon" :size="18" :stroke-width="2.4" aria-hidden="true" />
       </div>
     </div>
   </div>
@@ -144,15 +145,13 @@ const emit = defineEmits<{
 }
 
 .correct-icon {
+  display: block;
   color: #12b76a;
-  font-weight: bold;
-  font-size: 18px;
 }
 
 .incorrect-icon {
+  display: block;
   color: #f04438;
-  font-weight: bold;
-  font-size: 18px;
 }
 
 .options-section.compact {
