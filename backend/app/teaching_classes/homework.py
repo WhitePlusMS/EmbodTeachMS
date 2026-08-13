@@ -309,6 +309,23 @@ class HomeworkModule:
                         message="作业已提交，不能重复提交",
                     ) from error
 
+            # 作业完成状态只由正式提交产生；保存草稿不会进入课程完成统计。
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO course_content_completions
+                    (id, learner_id, class_id, content_id, completed_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    learner.id,
+                    request.class_id,
+                    request.homework_id,
+                    now,
+                    now,
+                ),
+            )
+
             # 获取作业内容详情
             homework_content = self._stats.get_homework_content(
                 connection, request.homework_id, request.class_id

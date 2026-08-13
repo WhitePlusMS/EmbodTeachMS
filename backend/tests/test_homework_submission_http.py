@@ -177,6 +177,13 @@ def test_submit_homework_success(tmp_path: Path) -> None:
             )
             link_homework_question(connection, homework_id, question_id)
 
+        manual_complete = client.post(
+            f"/api/teaching-classes/{class_id}/contents/{homework_id}/complete",
+            headers=learner_headers,
+        )
+        assert manual_complete.status_code == 400
+        assert manual_complete.json()["code"] == "HOMEWORK_COMPLETION_REQUIRES_SUBMISSION"
+
         # 测试提交作业
         submit_request = {
             "classId": class_id,
@@ -207,6 +214,20 @@ def test_submit_homework_success(tmp_path: Path) -> None:
         question_result = result_data["questions"][0]
         assert question_result["isCorrect"] == True
         assert question_result["score"] == 1
+
+        detail = client.get(
+            f"/api/teaching-classes/{class_id}/published-contents/{homework_id}/learner",
+            headers=learner_headers,
+        )
+        assert detail.status_code == 200
+        assert detail.json()["data"]["completed"] is True
+
+        with database.connect() as connection:
+            completion = connection.execute(
+                "SELECT id FROM course_content_completions WHERE learner_id = ? AND class_id = ? AND content_id = ?",
+                (data["data"]["submission"]["learnerId"], class_id, homework_id),
+            ).fetchone()
+        assert completion is not None
 
 
 def test_submit_homework_late_submission(tmp_path: Path) -> None:

@@ -96,6 +96,22 @@ def test_single_choice_feedback_persists_after_refresh(tmp_path: Path) -> None:
         assert refreshed_data["attempt"]["selectedAnswers"] == [0]
         assert refreshed_data["correctAnswers"] == [0]
         assert refreshed_data["explanation"] == "基础加法"
+        assert refreshed_data["content"]["completed"] is True
+
+        repeated_submit = client.post(
+            f"/api/teaching-classes/{class_id}/published-contents/{content_id}/submit-answer",
+            headers=learner,
+            json={"classId": class_id, "contentId": content_id, "selectedAnswers": [1]},
+        )
+        assert repeated_submit.status_code == 400
+        assert repeated_submit.json()["code"] == "ATTEMPT_ALREADY_EXISTS"
+
+        manual_complete = client.post(
+            f"/api/teaching-classes/{class_id}/contents/{content_id}/complete",
+            headers=learner,
+        )
+        assert manual_complete.status_code == 400
+        assert manual_complete.json()["code"] == "CLASSROOM_PRACTICE_COMPLETION_REQUIRES_SUBMISSION"
 
 
 def test_multiple_choice_requires_exact_answer_set_and_empty_is_rejected(tmp_path: Path) -> None:

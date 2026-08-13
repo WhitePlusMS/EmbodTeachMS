@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleCheckBig, CircleX } from "@lucide/vue";
 import { ref, computed, watch } from "vue";
 import { ApiError } from "../api/client";
 import type { ClassroomPracticeContentDetailView, ClassroomPracticeAttemptView } from "../api/client";
@@ -116,13 +117,6 @@ const handleSubmit = async () => {
   }
 };
 
-// 重置作答状态（用于刷新后重新作答）
-const resetAnswer = () => {
-  selectedAnswers.value = [];
-  result.value = null;
-  error.value = null;
-};
-
 // 监听practiceDetail变化，恢复已保存的作答状态
 watch(() => props.practiceDetail, (newDetail) => {
   if (newDetail.attempt) {
@@ -175,21 +169,13 @@ watch(() => props.practiceDetail, (newDetail) => {
         {{ isSubmitting ? '提交中...' : '核对答案' }}
       </button>
 
-      <button
-        v-if="showResult"
-        type="button"
-        class="reset-button"
-        @click="resetAnswer"
-      >
-        重新作答
-      </button>
     </div>
 
     <!-- 结果展示 -->
     <div v-if="showResult" class="result-section">
       <div class="result-status" :class="{ 'correct': result?.isCorrect, 'incorrect': result && !result.isCorrect }">
-        <span v-if="result?.isCorrect" class="result-icon">✓</span>
-        <span v-else class="result-icon">✗</span>
+        <CircleCheckBig v-if="result?.isCorrect" class="result-icon" :size="24" :stroke-width="2" aria-hidden="true" />
+        <CircleX v-else class="result-icon" :size="24" :stroke-width="2" aria-hidden="true" />
         <span class="result-text">
           {{ result?.isCorrect ? '回答正确！' : '回答错误' }}
         </span>
@@ -236,7 +222,7 @@ watch(() => props.practiceDetail, (newDetail) => {
   margin-bottom: 20px;
 }
 
-.submit-button, .reset-button {
+.submit-button {
   padding: 12px 24px;
   border: none;
   border-radius: 8px;
@@ -259,17 +245,6 @@ watch(() => props.practiceDetail, (newDetail) => {
 
 .submit-button:not(:disabled):hover {
   background: #135e3f;
-}
-
-.reset-button {
-  background: #f8faf9;
-  color: #17392c;
-  border: 1px solid #dce5de;
-}
-
-.reset-button:hover {
-  background: #e9f4ee;
-  border-color: #167451;
 }
 
 .result-section {
@@ -295,7 +270,8 @@ watch(() => props.practiceDetail, (newDetail) => {
 }
 
 .result-icon {
-  font-size: 24px;
+  display: block;
+  flex: 0 0 auto;
 }
 
 .explanation h4 {

@@ -4,7 +4,7 @@ import type {
   HomeworkSubmissionView,
   PublishedContentView,
 } from "../api/client";
-import { formatContentType, formatDate, homeworkStatus } from "../modules/display-rules";
+import { formatContentType, formatDate, formatDateTime, homeworkStatus } from "../modules/display-rules";
 
 // Props定义
 const props = defineProps<{
@@ -42,7 +42,7 @@ const status = computed(() =>
       <p class="homework-description">{{ homework.description || '暂无描述' }}</p>
       <div class="homework-meta">
         <span v-if="homework.dueAt" class="homework-due">
-          截止时间：{{ formatDate(homework.dueAt) }}
+          截止时间：{{ formatDateTime(homework.dueAt) }}
         </span>
         <span class="homework-time">
           发布于 {{ formatDate(homework.createdAt) }}
@@ -74,7 +74,7 @@ const status = computed(() =>
   cursor: pointer;
   text-align: left;
   font: inherit;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .homework-item:hover {
@@ -86,23 +86,29 @@ const status = computed(() =>
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
 .homework-header h3 {
+  min-width: 0;
+  overflow: hidden;
   margin: 0;
   font-size: 16px;
   font-weight: 700;
   color: #17392c;
+  overflow-wrap: anywhere;
 }
 
 .homework-type-badge {
+  flex: 0 0 auto;
   padding: 4px 12px;
   border-radius: 20px;
   background: #e9f4ee;
   color: #167451;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .homework-body {

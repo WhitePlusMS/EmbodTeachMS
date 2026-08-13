@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeft, ArrowRight } from "@lucide/vue";
 import { ref, computed, watch } from "vue";
 import { ApiError } from "../api/client";
 import type { PublishedContentDetailView, HomeworkSubmissionDetailView, HomeworkSubmissionView } from "../api/client";
@@ -6,7 +7,7 @@ import type { SessionClient } from "../api/session";
 import ChoiceOptionList from "./ChoiceOptionList.vue";
 import { toggleChoiceAnswer } from "../modules/choice-answers";
 import { useAsyncAction } from "../modules/async-action";
-import { formatDate } from "../modules/display-rules";
+import { formatDateTime } from "../modules/display-rules";
 
 // Props定义
 const props = defineProps<{
@@ -75,6 +76,23 @@ const questions = computed(() => (props.submissionDetail.questions ?? []).map((q
     correctAnswers: result?.correctAnswers ?? [],
   };
 }));
+
+// 作业按题目逐题展示，答案仍集中保存在 selectedAnswers 中，切换题目不会丢失草稿。
+const currentQuestionIndex = ref(0);
+const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] ?? null);
+
+const goToQuestion = (index: number): void => {
+  if (questions.value.length === 0) return;
+  currentQuestionIndex.value = Math.min(Math.max(index, 0), questions.value.length - 1);
+};
+
+const goPreviousQuestion = (): void => {
+  goToQuestion(currentQuestionIndex.value - 1);
+};
+
+const goNextQuestion = (): void => {
+  goToQuestion(currentQuestionIndex.value + 1);
+};
 
 // 计算属性：是否已提交
 const isSubmitted = computed(() =>
@@ -186,6 +204,7 @@ const restoreSavedAnswers = () => {
 // 监听提交详情变化，恢复答案
 watch(() => props.submissionDetail, () => {
   restoreSavedAnswers();
+  goToQuestion(currentQuestionIndex.value);
 }, { immediate: true });
 
 // 清理定时器
@@ -202,7 +221,7 @@ onUnmounted(() => {
       <h3>{{ content.title }}</h3>
       <div class="homework-meta">
         <span v-if="content.dueAt" class="due-date">
-          截止时间：{{ formatDate(content.dueAt) }}
+          截止时间：{{ formatDateTime(content.dueAt) }}
         </span>
         <span v-if="isOverdue" class="overdue-badge">已截止</span>
         <span v-if="isSubmitted" class="submitted-badge">已提交</span>
@@ -228,33 +247,55 @@ onUnmounted(() => {
 
     <!-- 题目列表 -->
     <div class="questions-section">
-      <div
-        v-for="(question, index) in questions"
-        :key="question.id"
-        class="question-item"
-      >
+      <div v-if="currentQuestion" :key="currentQuestion.id" class="question-item">
+        <div class="question-heading">
+          <span class="question-progress">第 {{ currentQuestionIndex + 1 }} / {{ questions.length }} 题</span>
+          <h4>{{ currentQuestionIndex + 1 }}. {{ currentQuestion.stem }}</h4>
+        </div>
         <div class="question-stem">
-          <h4>{{ index + 1 }}. {{ question.stem }}</h4>
-          <div v-if="question.hint" class="question-hint">
-            <small>提示：{{ question.hint }}</small>
+          <div v-if="currentQuestion.hint" class="question-hint">
+            <small>提示：{{ currentQuestion.hint }}</small>
           </div>
         </div>
 
         <!-- 选项区域 -->
         <ChoiceOptionList
-          :options="question.options"
-          :single-choice="question.type === 'single_choice'"
-          :selected-answers="question.userAnswer"
-          :correct-answers="question.correctAnswers"
+          :options="currentQuestion.options"
+          :single-choice="currentQuestion.type === 'single_choice'"
+          :selected-answers="currentQuestion.userAnswer"
+          :correct-answers="currentQuestion.correctAnswers"
           :revealed="isSubmitted"
-          @select="handleChoiceSelect(question.id, $event, question.type === 'single_choice')"
+          @select="handleChoiceSelect(currentQuestion.id, $event, currentQuestion.type === 'single_choice')"
         />
 
         <!-- 解析 -->
-        <div v-if="isSubmitted && question.explanation" class="explanation">
+        <div v-if="isSubmitted && currentQuestion.explanation" class="explanation">
           <h5>解析：</h5>
-          <p>{{ question.explanation }}</p>
+          <p>{{ currentQuestion.explanation }}</p>
         </div>
+      </div>
+      <p v-else class="muted empty-copy">当前作业没有可作答题目。</p>
+
+      <div v-if="questions.length > 1" class="question-navigation" aria-label="作业题目导航">
+        <button
+          type="button"
+          class="question-nav-button"
+          :disabled="currentQuestionIndex === 0"
+          @click="goPreviousQuestion"
+        >
+          <ArrowLeft class="button-icon" :size="16" :stroke-width="2" aria-hidden="true" />
+          上一题
+        </button>
+        <span>第 {{ currentQuestionIndex + 1 }} / {{ questions.length }} 题</span>
+        <button
+          type="button"
+          class="question-nav-button"
+          :disabled="currentQuestionIndex === questions.length - 1"
+          @click="goNextQuestion"
+        >
+          下一题
+          <ArrowRight class="button-icon" :size="16" :stroke-width="2" aria-hidden="true" />
+        </button>
       </div>
     </div>
 
@@ -406,6 +447,17 @@ onUnmounted(() => {
   border-bottom: none;
 }
 
+.question-heading {
+  display: grid;
+  gap: 8px;
+}
+
+.question-progress {
+  color: #146b4a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .question-stem h4 {
   margin: 0 0 12px;
   font-size: 18px;
@@ -441,6 +493,42 @@ onUnmounted(() => {
   font-size: 14px;
   color: #687970;
   line-height: 1.5;
+}
+
+.question-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0 0;
+  color: #416055;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.question-nav-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid #dce5de;
+  border-radius: 9px;
+  color: #17392c;
+  background: #f8faf9;
+  font: inherit;
+  cursor: pointer;
+}
+
+.question-nav-button:disabled {
+  color: #9aa9a3;
+  background: #f1f4f2;
+  cursor: not-allowed;
+}
+
+.empty-copy {
+  margin: 0;
+  color: #687970;
 }
 
 .error-message {
@@ -525,6 +613,16 @@ onUnmounted(() => {
   .result-stats {
     flex-direction: column;
     gap: 8px;
+  }
+
+  .question-navigation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .question-navigation span {
+    order: -1;
+    text-align: center;
   }
 }
 </style>

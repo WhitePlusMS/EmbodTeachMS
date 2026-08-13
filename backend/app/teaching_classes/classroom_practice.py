@@ -263,6 +263,18 @@ class ClassroomPractice:
                     message="您已经作答过这道题目",
                 )
 
+            # 课堂练习提交即完成：作答记录与完成记录在同一事务中写入，
+            # 避免出现“已经提交但课程进度仍未完成”的中间状态。
+            completion_id = str(uuid.uuid4())
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO course_content_completions (
+                    id, learner_id, class_id, content_id, completed_at, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (completion_id, learner.id, request.class_id, request.content_id, now, now),
+            )
+
             # 获取保存的作答记录
             attempt_row = connection.execute(
                 """
@@ -283,7 +295,7 @@ class ClassroomPractice:
             )
 
             logger.info(
-                "classroom_practice_answer_submitted learner_id=%s class_id=%s content_id=%s is_correct=%s",
+                "classroom_practice_answer_submitted learner_id=%s class_id=%s content_id=%s is_correct=%s completed=true",
                 learner.id,
                 request.class_id,
                 request.content_id,
