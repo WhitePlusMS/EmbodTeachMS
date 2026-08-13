@@ -28,6 +28,7 @@ from app.teaching_classes.models import (
     LearnerClassListView,
     ResolveJoinRequestRequest,
     ResolveJoinRequestResponse,
+    RenameTeachingClassRequest,
     TeachingClassListView,
     TeachingClassView,
     UpdateJoinPolicyRequest,
@@ -85,6 +86,18 @@ def update_join_policy(
     """更新教学班加入策略"""
     teaching_class = service.update_join_policy(class_id, body, teacher)
     return success_response(request, code="TEACHING_CLASS_UPDATED", message="加入策略更新成功", data=teaching_class)
+
+
+@router.patch("/{class_id}/name", response_model=ApiResponse[TeachingClassView], responses={403: documented_error("只有课程教师可以重命名课程"), 404: documented_error("教学班不存在"), 422: documented_error("请求参数不正确")})
+def rename_teaching_class(request: Request, class_id: str, body: RenameTeachingClassRequest, teacher: TeacherDep, service: TeachingClassServiceDep) -> ApiResponse[TeachingClassView]:
+    teaching_class = service.rename_class(class_id, body, teacher)
+    return success_response(request, code="TEACHING_CLASS_RENAMED", message="课程重命名成功", data=teaching_class)
+
+
+@router.delete("/{class_id}", response_model=ApiResponse[None], responses={403: documented_error("只有课程教师可以删除课程"), 404: documented_error("教学班不存在")})
+def delete_teaching_class(request: Request, class_id: str, teacher: TeacherDep, service: TeachingClassServiceDep) -> ApiResponse[None]:
+    service.delete_class(class_id, teacher)
+    return success_response(request, code="TEACHING_CLASS_DELETED", message="课程删除成功", data=None)
 
 
 @router.get(

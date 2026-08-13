@@ -33,6 +33,7 @@ from app.teaching_classes.models import (
     ResolveJoinRequestResponse,
     TeachingClassView,
     UpdateJoinPolicyRequest,
+    RenameTeachingClassRequest,
     CourseOverview,
     CourseOverviewCandidateView,
     UpdateCourseOverviewRequest,
@@ -616,6 +617,30 @@ class TeachingClassService:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
+
+    def rename_class(self, class_id: str, request: RenameTeachingClassRequest, teacher: UserView) -> TeachingClassView:
+        """重命名教师自己的教学班。"""
+        now = self._now()
+        with self._database.connect() as connection:
+            row = connection.execute(
+                "SELECT id, join_policy, created_at, updated_at FROM teaching_classes WHERE id = ? AND owner_teacher_id = ?",
+                (class_id, teacher.id),
+            ).fetchone()
+            if row is None:
+                raise BusinessError(status_code=404, code="RESOURCE_NOT_FOUND", message="教学班不存在")
+            updated_at = max(row["updated_at"] + 1, now)
+            connection.execute("UPDATE teaching_classes SET name = ?, updated_at = ? WHERE id = ? AND owner_teacher_id = ?", (request.name, updated_at, class_id, teacher.id))
+            member_count = connection.execute("SELECT COUNT(*) FROM class_memberships WHERE class_id = ?", (class_id,)).fetchone()[0]
+        logger.info("teaching_class_renamed class_id=%s teacher_id=%s", class_id, teacher.id)
+        return TeachingClassView(id=row["id"], name=request.name, join_policy=JoinPolicy(row["join_policy"]), member_count=member_count, created_at=row["created_at"], updated_at=updated_at)
+
+    def delete_class(self, class_id: str, teacher: UserView) -> None:
+        """删除教师自己的教学班，依靠外键级联清理关联数据。"""
+        with self._database.connect() as connection:
+            result = connection.execute("DELETE FROM teaching_classes WHERE id = ? AND owner_teacher_id = ?", (class_id, teacher.id))
+            if result.rowcount != 1:
+                raise BusinessError(status_code=404, code="RESOURCE_NOT_FOUND", message="教学班不存在")
+        logger.info("teaching_class_deleted class_id=%s teacher_id=%s", class_id, teacher.id)
 
     def get_authorization_code(
         self, class_id: str, teacher: UserView

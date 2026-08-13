@@ -24,7 +24,8 @@ import {
   type UserView,
   type WorkspaceView,
   type TeacherPublishedContentView,
-  type PublishHomeworkRequest,
+  type PublishQuestionRequest,
+  type UpdatePublishedContentRequest,
   type KnowledgeBaseDocumentView,
   type SelectPreparationDocumentsRequest,
 } from "../api/client";
@@ -33,6 +34,7 @@ import { createPreparationWorkbenchCoordinator } from "../modules/preparation-wo
 import TeacherClassWorkspace from "./TeacherClassWorkspace.vue";
 import LearnerClassWorkspace from "./LearnerClassWorkspace.vue";
 import KnowledgeBaseManagementPanel from "./KnowledgeBaseManagementPanel.vue";
+import SiteFooter from "./SiteFooter.vue";
 import WorkspaceSidebar from "./WorkspaceSidebar.vue";
 import type { LearnerNavigation, TeacherNavigation } from "../modules/workspace-navigation";
 
@@ -45,7 +47,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   sessionEnded: [message?: string];
   operationalError: [error: unknown];
-  publishHomework: [classId: string, body: PublishHomeworkRequest];
 }>();
 
 const notice = ref("");
@@ -60,6 +61,8 @@ const learnerClasses = ref<TeachingClassView[]>([]);
 const selectedLearnerClass = ref<TeachingClassView | null>(null);
 const learnerJoinRequests = ref<JoinRequestView[]>([]);
 const learnerActiveNav = ref<LearnerNavigation>("current-course");
+// 每次点击学习者侧栏都递增，保证重复点击当前导航时也能关闭内容阅读器。
+const learnerNavigationRevision = ref(0);
 // 教师只有一个顶层工作区；知识库管理作为“我的课程”内的子入口。
 const teacherActiveNav = ref<TeacherNavigation>("overview");
 const classKnowledgeBaseDocuments = ref<KnowledgeBaseDocumentView[]>([]);
@@ -69,8 +72,8 @@ const parsedParagraphs = ref<PreparationSessionParagraphView[]>([]);
 const highlightedParagraphs = ref<PreparationSessionParagraphWithHighlightsView[]>([]);
 const preparationQuestions = ref<QuestionListView>({ items: [], isPublishUnlocked: false, canGenerateFromHighlights: false });
 const publishedContents = ref<TeacherPublishedContentView[]>([]);
-const publishFeedback = ref<"classroom" | "homework" | "error" | null>(null);
-const publishErrorMessage = ref<string | null>(null);
+// 内容发布、修改或删除后通知作业统计组件重新读取数据。
+const publishedContentsRevision = ref(0);
 // 轮询定时器由 preparation-workbench coordinator 持有，组件不再保存句柄。
 
 // 会话级请求执行器：token 与 401 策略只在 api/session.ts 出现一次，
@@ -155,6 +158,27 @@ async function handleCreateTeachingClass(request: CreateTeachingClassRequest): P
   }
 }
 
+async function handleRenameTeachingClass(classId: string, currentName: string): Promise<void> {
+  const name = window.prompt("请输入新的课程名称", currentName)?.trim();
+  if (!name || name === currentName) return;
+  const updated = await runAction((currentSession) => currentSession.renameTeachingClass(classId, name));
+  if (!updated) return;
+  teacherClasses.value = teacherClasses.value.map((item) => item.id === classId ? updated : item);
+  if (selectedTeachingClass.value?.id === classId) selectedTeachingClass.value = updated;
+}
+
+async function handleDeleteTeachingClass(classId: string): Promise<void> {
+  const target = teacherClasses.value.find((item) => item.id === classId);
+  if (!target || !window.confirm(`确认删除课程“${target.name}”？课程内容和学习记录也会被删除。`)) return;
+  const result = await runAction(async (currentSession) => {
+    await currentSession.deleteTeachingClass(classId);
+    return true;
+  });
+  if (!result) return;
+  teacherClasses.value = teacherClasses.value.filter((item) => item.id !== classId);
+  if (selectedTeachingClass.value?.id === classId) handleLeaveTeachingClass();
+}
+
 async function handleUpdateJoinPolicy(classId: string, request: UpdateJoinPolicyRequest): Promise<void> {
   const updated = await runAction((session) => session.updateJoinPolicy(classId, request));
   if (!updated) return;
@@ -198,10 +222,12 @@ function handleOpenLearnerClass(classId: string): void {
 function handleLeaveLearnerClass(): void {
   selectedLearnerClass.value = null;
   learnerActiveNav.value = "current-course";
+  learnerNavigationRevision.value += 1;
 }
 
 function handleLearnerNavigate(navId: LearnerNavigation): void {
   learnerActiveNav.value = navId;
+  learnerNavigationRevision.value += 1;
 }
 
 function handleLeaveTeachingClass(): void {
@@ -264,8 +290,6 @@ function resetPreparationState(): void {
   highlightedParagraphs.value = [];
   preparationQuestions.value = { items: [], isPublishUnlocked: false, canGenerateFromHighlights: false };
   publishedContents.value = [];
-  publishFeedback.value = null;
-  publishErrorMessage.value = null;
 }
 
 async function handleUpdateAuthorizationCode(classId: string, request: CreateOrUpdateAuthorizationCodeRequest): Promise<void> {
@@ -352,39 +376,27 @@ async function handleDeleteQuestion(classId: string, questionId: string): Promis
   await preparationWorkbench.deleteQuestion(classId, questionId);
 }
 
-async function handlePublishPreparationSession(classId: string): Promise<void> {
-  publishFeedback.value = null;
-  publishErrorMessage.value = null;
-  let published: PreparationSessionView | undefined;
-  try {
-    busy.value = true;
-    published = await session.publishPreparationSession(classId);
-    preparationSession.value = published;
-  } catch (error: unknown) {
-    if (error instanceof ApiError && error.status === 401) return;
-    publishFeedback.value = "error";
-    publishErrorMessage.value = error instanceof ApiError ? error.message : "发布失败，请检查题目和课程内容后重试";
-    return;
-  } finally {
-    busy.value = false;
-  }
-  // 发布响应体只携带备课会话视图；已发布内容列表与课程概述不在其中，仍需补拉。
-  if (!published) {
-    publishFeedback.value = "error";
-    return;
-  }
-  publishFeedback.value = "classroom";
+async function handlePublishQuestion(
+  classId: string,
+  questionId: string,
+  request: PublishQuestionRequest,
+): Promise<void> {
+  const published = await runAction((currentSession) =>
+    currentSession.publishPreparationQuestion(classId, questionId, request),
+  );
+  if (!published) return;
+
+  await preparationWorkbench.refreshQuestions(classId);
   const refreshed = await runAction(
-    (session) => Promise.all([
-      session.listPublishedContents(classId),
-      session.getCourseOverview(classId),
+    (currentSession) => Promise.all([
+      currentSession.listPublishedContents(classId),
+      currentSession.getCourseOverview(classId),
     ]),
     false,
   );
-  if (refreshed) {
-    [publishedContents.value, courseOverview.value] = refreshed;
-  }
-  notice.value = "课程内容发布成功";
+  if (refreshed) [publishedContents.value, courseOverview.value] = refreshed;
+  noticeVariant.value = "success";
+  notice.value = request.mode === "homework" ? "这道题已发布为作业" : "这道题已发布为课堂练习";
 }
 
 async function handleListPublishedContents(classId: string): Promise<void> {
@@ -400,40 +412,31 @@ async function handleListPublishedContents(classId: string): Promise<void> {
   }
 }
 
-async function handlePublishHomework(classId: string, request: PublishHomeworkRequest): Promise<void> {
-  publishFeedback.value = null;
-  publishErrorMessage.value = null;
-  let published: Awaited<ReturnType<SessionClient["publishHomework"]>> | undefined;
-  try {
-    busy.value = true;
-    published = await session.publishHomework(classId, request);
-    preparationSession.value = published.session;
-  } catch (error: unknown) {
-    if (error instanceof ApiError && error.status === 401) return;
-    publishFeedback.value = "error";
-    publishErrorMessage.value = error instanceof ApiError ? error.message : "作业发布失败，请检查题目和作业信息后重试";
-    return;
-  } finally {
-    busy.value = false;
-  }
-  if (!published) {
-    publishFeedback.value = "error";
-    return;
-  }
-  publishFeedback.value = "homework";
-
-  const refreshed = await runAction(
-    (session) => Promise.all([
-      session.listPublishedContents(classId),
-      session.getCourseOverview(classId),
-    ]),
-    false,
+async function handleUpdatePublishedContent(
+  classId: string,
+  contentId: string,
+  request: UpdatePublishedContentRequest,
+): Promise<void> {
+  const updated = await runAction((currentSession) =>
+    currentSession.updatePublishedContent(classId, contentId, request),
   );
-  if (refreshed) {
-    [publishedContents.value, courseOverview.value] = refreshed;
-  }
+  if (!updated) return;
+  await handleListPublishedContents(classId);
+  publishedContentsRevision.value += 1;
+  noticeVariant.value = "success";
+  notice.value = "课程内容修改成功";
+}
 
-  notice.value = "作业发布成功";
+async function handleDeletePublishedContent(classId: string, contentId: string): Promise<void> {
+  const deleted = await runAction(async (currentSession) => {
+    await currentSession.deletePublishedContent(classId, contentId);
+    return true;
+  });
+  if (!deleted) return;
+  await handleListPublishedContents(classId);
+  publishedContentsRevision.value += 1;
+  noticeVariant.value = "success";
+  notice.value = "课程内容已删除";
 }
 
 async function handleLogout(): Promise<void> {
@@ -495,9 +498,9 @@ onUnmounted(() => preparationWorkbench.dispose());
             :learner-join-requests="learnerJoinRequests"
             :session="session"
             :active-nav="learnerActiveNav"
+            :navigation-revision="learnerNavigationRevision"
             @open-class="handleOpenLearnerClass"
             @leave-class="handleLeaveLearnerClass"
-            @navigate="handleLearnerNavigate"
             @join-class="handleJoinClass"
             @apply-for-join="handleApplyForJoin"
             @join-by-authorization-code="handleJoinByAuthorizationCode"
@@ -526,12 +529,13 @@ onUnmounted(() => preparationWorkbench.dispose());
             :highlighted-paragraphs="highlightedParagraphs"
             :preparation-questions="preparationQuestions"
             :published-contents="publishedContents"
-            :publish-feedback="publishFeedback"
-            :publish-error-message="publishErrorMessage"
+            :published-contents-revision="publishedContentsRevision"
             :session="session"
             :active-nav="teacherActiveNav"
             @create-class="handleCreateTeachingClass"
             @open-class="loadTeacherClassDetails"
+            @rename-class="handleRenameTeachingClass"
+            @delete-class="handleDeleteTeachingClass"
             @navigate="handleTeacherNavigate"
             @update-join-policy="handleUpdateJoinPolicy"
             @leave-class="handleLeaveTeachingClass"
@@ -548,12 +552,14 @@ onUnmounted(() => preparationWorkbench.dispose());
             @update-question="handleUpdateQuestion"
             @confirm-question="handleConfirmQuestion"
             @delete-question="handleDeleteQuestion"
-            @publish="handlePublishPreparationSession"
-            @publish-homework="handlePublishHomework"
+            @publish-question="handlePublishQuestion"
+            @update-published-content="handleUpdatePublishedContent"
+            @delete-published-content="handleDeletePublishedContent"
             @list-published-contents="handleListPublishedContents"
           />
         </template>
       </section>
+      <SiteFooter />
     </section>
   </main>
 </template>

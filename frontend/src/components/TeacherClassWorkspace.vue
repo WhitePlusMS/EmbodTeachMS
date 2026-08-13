@@ -20,7 +20,8 @@ import type {
   CreateQuestionRequest,
   UpdateQuestionRequest,
   TeacherPublishedContentView,
-  PublishHomeworkRequest,
+  PublishQuestionRequest,
+  UpdatePublishedContentRequest,
 } from "../api/client";
 import StatusPanel from "./StatusPanel.vue";
 import TeacherOverviewPage from "./TeacherOverviewPage.vue";
@@ -50,8 +51,7 @@ const props = defineProps<{
   highlightedParagraphs: PreparationSessionParagraphWithHighlightsView[];
   preparationQuestions: QuestionListView;
   publishedContents: TeacherPublishedContentView[];
-  publishFeedback: "classroom" | "homework" | "error" | null;
-  publishErrorMessage: string | null;
+  publishedContentsRevision: number;
   session: SessionClient;
   activeNav: string;
 }>();
@@ -60,6 +60,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   createClass: [request: CreateTeachingClassRequest];
   openClass: [classId: string];
+  renameClass: [classId: string, name: string];
+  deleteClass: [classId: string];
   updateJoinPolicy: [classId: string, request: UpdateJoinPolicyRequest];
   leaveClass: [];
   resolveJoinRequest: [requestId: string, status: JoinRequestDecision];
@@ -75,8 +77,9 @@ const emit = defineEmits<{
   updateQuestion: [classId: string, questionId: string, body: UpdateQuestionRequest];
   confirmQuestion: [classId: string, questionId: string];
   deleteQuestion: [classId: string, questionId: string];
-  publish: [classId: string];
-  publishHomework: [classId: string, body: PublishHomeworkRequest];
+  publishQuestion: [classId: string, questionId: string, request: PublishQuestionRequest];
+  updatePublishedContent: [classId: string, contentId: string, request: UpdatePublishedContentRequest];
+  deletePublishedContent: [classId: string, contentId: string];
   listPublishedContents: [classId: string];
   navigate: [navId: string];
 }>();
@@ -102,6 +105,10 @@ function confirmAgentQuestion(questionId: string): void {
 
 function deleteAgentQuestion(questionId: string): void {
   if (props.selectedClass) emit("deleteQuestion", props.selectedClass.id, questionId);
+}
+
+function publishAgentQuestion(questionId: string, request: PublishQuestionRequest): void {
+  if (props.selectedClass) emit("publishQuestion", props.selectedClass.id, questionId, request);
 }
 
 // 创建班级处理
@@ -186,6 +193,8 @@ const handleCreateClass = () => {
         :join-policy-label="formatJoinPolicy(classItem.joinPolicy)"
         :index="index"
         @select="emit('openClass', classItem.id)"
+        @rename="(name) => emit('renameClass', classItem.id, name)"
+        @remove="emit('deleteClass', classItem.id)"
       />
     </section>
 
@@ -207,10 +216,12 @@ const handleCreateClass = () => {
       :class-id="selectedClass.id"
       :session="session"
       :can-generate-from-highlights="preparationQuestions.canGenerateFromHighlights"
+      :highlighted-paragraphs="highlightedParagraphs"
       :preparation-questions="preparationQuestions"
       @refresh-preparation="refreshAgentPreparation"
       @confirm-question="confirmAgentQuestion"
       @delete-question="deleteAgentQuestion"
+      @publish-question="publishAgentQuestion"
       @navigate="emit('navigate', $event)"
     />
     <main class="class-main">
@@ -249,8 +260,6 @@ const handleCreateClass = () => {
           :paragraphs="parsedParagraphs"
           :highlighted-paragraphs="highlightedParagraphs"
           :preparation-questions="preparationQuestions"
-          :publish-feedback="publishFeedback"
-          :publish-error-message="publishErrorMessage"
           @select-documents="(classId, body) => emit('selectPreparationDocuments', classId, body)"
           @refresh-documents="(classId) => emit('refreshPreparationDocuments', classId)"
           @delete-document="(classId, documentId) => emit('deletePreparationDocument', classId, documentId)"
@@ -261,8 +270,7 @@ const handleCreateClass = () => {
           @update-question="(classId, questionId, body) => emit('updateQuestion', classId, questionId, body)"
           @confirm-question="(classId, questionId) => emit('confirmQuestion', classId, questionId)"
           @delete-question="(classId, questionId) => emit('deleteQuestion', classId, questionId)"
-          @publish="(classId) => emit('publish', classId)"
-          @publish-homework="(classId, body) => emit('publishHomework', classId, body)"
+          @publish-question="(classId, questionId, request) => emit('publishQuestion', classId, questionId, request)"
         />
       </section>
 
@@ -277,13 +285,18 @@ const handleCreateClass = () => {
         v-else-if="props.activeNav === 'exercises'"
         :selected-class="selectedClass"
         :published-contents="publishedContents"
+        @update-content="(contentId, request) => emit('updatePublishedContent', selectedClass?.id ?? '', contentId, request)"
+        @delete-content="(contentId) => emit('deletePublishedContent', selectedClass?.id ?? '', contentId)"
       />
 
       <!-- 作业管理页面：统计由教师专用接口读取确定性判分事实。 -->
       <TeacherHomeworkManagement
         v-else-if="props.activeNav === 'assignments'"
         :session="session"
-        :class-id="selectedClass.id"
+        :class-id="selectedClass?.id ?? ''"
+        :refresh-token="publishedContentsRevision"
+        @update-content="(contentId, request) => emit('updatePublishedContent', selectedClass?.id ?? '', contentId, request)"
+        @delete-content="(contentId) => emit('deletePublishedContent', selectedClass?.id ?? '', contentId)"
       />
 
       <!-- Dashboard页面 -->
