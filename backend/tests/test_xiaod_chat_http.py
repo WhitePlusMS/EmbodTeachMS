@@ -3,10 +3,12 @@
 import time
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
 from app.llm_gateway import (
+    ChatGatewayResult,
     FallbackChatGateway,
     ResilientChatGateway,
     StaticChatGateway,
@@ -44,7 +46,7 @@ def ask(
             "classId": class_id,
             "contentId": content_id,
             "question": "为什么机械臂需要反馈控制？",
-            "file": {"name": "arm.log", "type": "text/plain", "size": 128},
+            "mode": "explain",
         },
     )
 
@@ -141,6 +143,37 @@ def test_injected_gateway_is_shared_with_xiaod_route(tmp_path: Path) -> None:
         assert answered["status"] == "success"
         assert answered["source"] == "demo"
         assert answered["text"] == "真实网关接缝已接通。"
+
+
+def test_xiaod_chat_flattens_multi_level_knowledge_references(tmp_path: Path) -> None:
+    """知识库标题路径是数组时，小D仍应返回可展示的字符串引用而非 500。"""
+    app, database = build_app(
+        tmp_path / "xiaod-nested-references.db",
+        jwt_secret="test-secret-with-enough-length",
+    )
+
+    class StubKnowledgeBaseService:
+        def search_for_class_member(self, **_kwargs):
+            return SimpleNamespace(results=[SimpleNamespace(title_path=["长版课程正文", "跟踪与状态更新"], content="检索内容")])
+
+    class IntegratedStaticGateway:
+        def generate(self, _request):
+            return ChatGatewayResult(
+                text="已根据课程资料回答。",
+                status="success",
+                source="integrated",
+                attempts=1,
+            )
+
+    with TestClient(app) as client:
+        learner, class_id, content_id = create_chat_context(client, database)
+        app.state.knowledge_base_service = StubKnowledgeBaseService()
+        app.state.xiaod_chat_gateway = IntegratedStaticGateway()
+
+        response = ask(client, learner, class_id, content_id)
+
+        assert response.status_code == 200
+        assert response.json()["data"]["references"] == ["长版课程正文 / 跟踪与状态更新"]
 
 
 def test_xiaod_chat_requires_login(tmp_path: Path) -> None:
