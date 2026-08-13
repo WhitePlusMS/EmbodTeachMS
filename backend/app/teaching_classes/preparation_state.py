@@ -43,6 +43,132 @@ class PreparationSessionStateStore:
             for row in rows
         ]
 
+    def archive_session_highlights(
+        self, connection: sqlite3.Connection, session_id: str
+    ) -> None:
+        """将当前会话中的知识库重点归档到文档维度。"""
+        connection.execute(
+            """
+            INSERT INTO preparation_document_highlights
+                (id, class_id, document_id, document_version, chunk_id,
+                 start_offset, end_offset, created_at)
+            SELECT h.id, s.class_id, s.document_id, s.document_version, s.chunk_id,
+                   h.start_offset, h.end_offset, h.created_at
+            FROM preparation_highlights h
+            JOIN (
+                SELECT p.session_id, p.ordinal, p.document_id, p.document_version,
+                       p.chunk_id, ps.class_id
+                FROM preparation_session_segments p
+                JOIN preparation_sessions ps ON ps.id = p.session_id
+                WHERE p.session_id = ?
+            ) s ON s.session_id = h.session_id AND s.ordinal = h.segment_ordinal
+            WHERE h.session_id = ? AND s.document_id IS NOT NULL AND s.chunk_id IS NOT NULL
+            ON CONFLICT(document_id, chunk_id, start_offset, end_offset) DO UPDATE SET
+                id = excluded.id,
+                class_id = excluded.class_id,
+                document_version = excluded.document_version,
+                created_at = excluded.created_at
+            """,
+            (session_id, session_id),
+        )
+        self._sync_published_highlights(
+            connection,
+            session_id,
+            self.load_highlights(connection, session_id),
+        )
+
+    @staticmethod
+    def _sync_published_highlights(
+        connection: sqlite3.Connection,
+        session_id: str,
+        highlights: list[dict[str, object]],
+    ) -> None:
+        """将当前备课重点同步到已发布课件对应的段落。"""
+        published_modules = connection.execute(
+            """
+            SELECT cpc.content_id, cpc.ordinal
+            FROM course_publications cp
+            JOIN course_publication_contents cpc ON cpc.publication_id = cp.id
+            JOIN course_contents cc ON cc.id = cpc.content_id
+            WHERE cp.preparation_session_id = ?
+              AND cc.content_type = 'knowledge_module'
+            ORDER BY cpc.ordinal
+            """,
+            (session_id,),
+        ).fetchall()
+        if not published_modules:
+            return
+
+        content_by_paragraph = {
+            int(row["ordinal"]): row["content_id"] for row in published_modules
+        }
+        content_ids = list(content_by_paragraph.values())
+        placeholders = ",".join("?" for _ in content_ids)
+        connection.execute(
+            f"DELETE FROM course_content_highlights WHERE content_id IN ({placeholders})",
+            content_ids,
+        )
+
+        snapshot_rows: list[tuple[str, str, int, int, int, int]] = []
+        for highlight in highlights:
+            paragraph_ordinal = highlight.get("paragraphOrdinal")
+            start_offset = highlight.get("startOffset")
+            end_offset = highlight.get("endOffset")
+            created_at = highlight.get("createdAt")
+            if not isinstance(paragraph_ordinal, int):
+                continue
+            content_id = content_by_paragraph.get(paragraph_ordinal)
+            if content_id is None:
+                continue
+            if not isinstance(start_offset, int) or not isinstance(end_offset, int):
+                continue
+            if not isinstance(created_at, int):
+                continue
+            snapshot_rows.append(
+                (
+                    f"{content_id}:{highlight['id']}",
+                    content_id,
+                    paragraph_ordinal,
+                    start_offset,
+                    end_offset,
+                    created_at,
+                )
+            )
+        if snapshot_rows:
+            connection.executemany(
+                """
+                INSERT INTO course_content_highlights
+                (id, content_id, paragraph_ordinal, start_offset, end_offset, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                snapshot_rows,
+            )
+
+    def restore_document_highlights(
+        self, connection: sqlite3.Connection, session_id: str
+    ) -> None:
+        """按当前会话段落恢复已保存的知识库重点。"""
+        connection.execute(
+            """
+            INSERT INTO preparation_highlights
+                (id, session_id, segment_ordinal, start_offset, end_offset, created_at)
+            SELECT h.id, ?, s.ordinal, h.start_offset, h.end_offset, h.created_at
+            FROM preparation_session_segments s
+            JOIN preparation_document_highlights h
+              ON h.document_id = s.document_id
+             AND h.chunk_id = s.chunk_id
+             AND h.document_version = s.document_version
+            WHERE s.session_id = ?
+            ON CONFLICT(id) DO UPDATE SET
+                session_id = excluded.session_id,
+                segment_ordinal = excluded.segment_ordinal,
+                start_offset = excluded.start_offset,
+                end_offset = excluded.end_offset,
+                created_at = excluded.created_at
+            """,
+            (session_id, session_id),
+        )
+
     def load_questions(
         self,
         connection: sqlite3.Connection,
@@ -110,6 +236,21 @@ class PreparationSessionStateStore:
         now: int,
     ) -> None:
         self._begin_state_update(connection, session["id"], session["state_revision"], now)
+        previous_ids = {
+            str(row["id"])
+            for row in connection.execute(
+                "SELECT id FROM preparation_highlights WHERE session_id = ?",
+                (session["id"],),
+            ).fetchall()
+        }
+        current_ids = {str(item["id"]) for item in highlights}
+        removed_ids = previous_ids.difference(current_ids)
+        if removed_ids:
+            placeholders = ",".join("?" for _ in removed_ids)
+            connection.execute(
+                f"DELETE FROM preparation_document_highlights WHERE id IN ({placeholders})",
+                tuple(removed_ids),
+            )
         connection.execute(
             "DELETE FROM preparation_highlights WHERE session_id = ?", (session["id"],)
         )
@@ -131,6 +272,7 @@ class PreparationSessionStateStore:
                 for item in highlights
             ],
         )
+        self.archive_session_highlights(connection, session["id"])
 
     def save_questions(
         self,
@@ -140,9 +282,16 @@ class PreparationSessionStateStore:
         now: int,
     ) -> None:
         self._begin_state_update(connection, session["id"], session["state_revision"], now)
-        connection.execute(
-            "DELETE FROM preparation_questions WHERE session_id = ?", (session["id"],)
-        )
+        if questions:
+            placeholders = ",".join("?" for _ in questions)
+            connection.execute(
+                f"DELETE FROM preparation_questions WHERE session_id = ? AND id NOT IN ({placeholders})",
+                [session["id"], *(question["id"] for question in questions)],
+            )
+        else:
+            connection.execute(
+                "DELETE FROM preparation_questions WHERE session_id = ?", (session["id"],)
+            )
         connection.executemany(
             """
             INSERT INTO preparation_questions
@@ -150,6 +299,19 @@ class PreparationSessionStateStore:
                  options_json, correct_answers_json, knowledge_points_json,
                  highlight_source_ids_json, hint, explanation, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                session_id = excluded.session_id,
+                source = excluded.source,
+                review_status = excluded.review_status,
+                question_type = excluded.question_type,
+                stem = excluded.stem,
+                options_json = excluded.options_json,
+                correct_answers_json = excluded.correct_answers_json,
+                knowledge_points_json = excluded.knowledge_points_json,
+                highlight_source_ids_json = excluded.highlight_source_ids_json,
+                hint = excluded.hint,
+                explanation = excluded.explanation,
+                updated_at = excluded.updated_at
             """,
             [
                 (

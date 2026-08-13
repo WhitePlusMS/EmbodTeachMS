@@ -265,6 +265,26 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_preparation_questions_session
                 ON preparation_questions(session_id, updated_at);
 
+                -- 逐题发布记录；同一道题可分别发布为课堂练习和作业。
+                CREATE TABLE IF NOT EXISTS preparation_question_publications (
+                    question_id TEXT NOT NULL,
+                    session_id TEXT NOT NULL,
+                    class_id TEXT NOT NULL,
+                    publication_mode TEXT NOT NULL CHECK (publication_mode IN ('classroom', 'homework')),
+                    content_id TEXT NOT NULL UNIQUE,
+                    homework_id TEXT,
+                    created_at INTEGER NOT NULL,
+                    PRIMARY KEY (question_id, publication_mode),
+                    FOREIGN KEY (question_id) REFERENCES preparation_questions(id) ON DELETE CASCADE,
+                    FOREIGN KEY (session_id) REFERENCES preparation_sessions(id) ON DELETE CASCADE,
+                    FOREIGN KEY (class_id) REFERENCES teaching_classes(id) ON DELETE CASCADE,
+                    FOREIGN KEY (content_id) REFERENCES course_contents(id) ON DELETE CASCADE,
+                    FOREIGN KEY (homework_id) REFERENCES course_contents(id) ON DELETE SET NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_preparation_question_publications_session
+                ON preparation_question_publications(session_id, created_at);
+
                 -- 可复用课件知识库及其教学班独立副本。
                 CREATE TABLE IF NOT EXISTS knowledge_bases (
                     id TEXT PRIMARY KEY,
@@ -382,6 +402,25 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_knowledge_base_chunks_scope
                 ON knowledge_base_chunks(knowledge_base_id, document_id, index_status, ordinal);
 
+                -- 备课重点按知识库文档持久化；切换当前备课文档时不丢失已保存重点。
+                CREATE TABLE IF NOT EXISTS preparation_document_highlights (
+                    id TEXT PRIMARY KEY,
+                    class_id TEXT NOT NULL,
+                    document_id TEXT NOT NULL,
+                    document_version INTEGER NOT NULL CHECK (document_version > 0),
+                    chunk_id TEXT NOT NULL,
+                    start_offset INTEGER NOT NULL CHECK (start_offset >= 0),
+                    end_offset INTEGER NOT NULL CHECK (end_offset > start_offset),
+                    created_at INTEGER NOT NULL,
+                    UNIQUE (document_id, chunk_id, start_offset, end_offset),
+                    FOREIGN KEY (class_id) REFERENCES teaching_classes(id) ON DELETE CASCADE,
+                    FOREIGN KEY (document_id) REFERENCES knowledge_base_documents(id) ON DELETE CASCADE,
+                    FOREIGN KEY (chunk_id) REFERENCES knowledge_base_chunks(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_preparation_document_highlights_document
+                ON preparation_document_highlights(document_id, document_version, chunk_id);
+
                 CREATE TABLE IF NOT EXISTS knowledge_base_chunk_embeddings (
                     chunk_id TEXT PRIMARY KEY,
                     model_name TEXT NOT NULL,
@@ -427,6 +466,20 @@ class Database:
                     FOREIGN KEY (publication_id) REFERENCES course_publications(id) ON DELETE CASCADE,
                     FOREIGN KEY (content_id) REFERENCES course_contents(id) ON DELETE CASCADE
                 );
+
+                -- 正式课件重点快照；发布后不依赖备课会话的临时重点状态。
+                CREATE TABLE IF NOT EXISTS course_content_highlights (
+                    id TEXT PRIMARY KEY,
+                    content_id TEXT NOT NULL,
+                    paragraph_ordinal INTEGER NOT NULL CHECK (paragraph_ordinal >= 0),
+                    start_offset INTEGER NOT NULL CHECK (start_offset >= 0),
+                    end_offset INTEGER NOT NULL CHECK (end_offset > start_offset),
+                    created_at INTEGER NOT NULL,
+                    FOREIGN KEY (content_id) REFERENCES course_contents(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_course_content_highlights_content
+                ON course_content_highlights(content_id, paragraph_ordinal, start_offset, end_offset);
 
                 CREATE TABLE IF NOT EXISTS course_publication_documents (
                     publication_id TEXT NOT NULL,

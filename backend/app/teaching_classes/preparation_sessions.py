@@ -32,6 +32,7 @@ from app.llm_gateway import (
 from app.teaching_classes.access import TeachingClassAccess
 from app.teaching_classes.models import (
     AddHighlightRequest,
+    CandidateQuestionGenerationRequest,
     CandidateQuestionGenerationView,
     ConfirmCandidateQuestionRequest,
     CreateQuestionRequest,
@@ -280,7 +281,7 @@ class PreparationSessionModule:
             connection.execute("BEGIN IMMEDIATE")
             session = self._require_session(connection, class_id, teacher)
             if not selected_ids:
-                self._clear_relationship_state(connection, session["id"])
+                self._clear_selected_document_state(connection, session["id"])
                 connection.execute(
                     """UPDATE preparation_sessions
                        SET original_filename=NULL, file_format=NULL, file_size_bytes=NULL,
@@ -321,7 +322,7 @@ class PreparationSessionModule:
             doc_by_id = {d["id"]: d for d in docs}
             ordered_docs = [doc_by_id[did] for did in selected_ids]
 
-            self._clear_relationship_state(connection, session["id"])
+            self._clear_selected_document_state(connection, session["id"])
             connection.executemany(
                 "INSERT INTO preparation_session_documents(session_id,document_id,ordinal,document_version,created_at) VALUES(?,?,?,?,?)",
                 [(session["id"], d["id"], i, d["version"], now) for i, d in enumerate(ordered_docs)],
@@ -345,6 +346,7 @@ class PreparationSessionModule:
                 "INSERT INTO preparation_session_segments(session_id,ordinal,document_id,chunk_id,document_version,block_type,content,created_at) VALUES(?,?,?,?,?,?,?,?)",
                 [(session["id"], i, did, cid, dv, bt, c, now) for i, (cid, did, dv, bt, c) in enumerate(block_rows)],
             )
+            self._state.restore_document_highlights(connection, session["id"])
 
             filenames = "、".join(d["original_filename"] for d in ordered_docs)
             connection.execute(
@@ -366,9 +368,25 @@ class PreparationSessionModule:
     @staticmethod
     def _clear_relationship_state(connection: sqlite3.Connection, session_id: str) -> None:
         for table in ("preparation_session_documents", "preparation_session_segments",
-                      "preparation_highlights", "preparation_questions"):
+                      "preparation_highlights", "preparation_question_publications",
+                      "preparation_questions"):
             connection.execute(f"DELETE FROM {table} WHERE session_id = ?", (session_id,))
         connection.execute("UPDATE preparation_sessions SET published_at=NULL, published_content_ids_json='[]' WHERE id=?", (session_id,))
+
+    def _clear_selected_document_state(
+        self, connection: sqlite3.Connection, session_id: str
+    ) -> None:
+        """只清理当前文档视图，保留文档重点、备课题目和发布记录。"""
+        self._state.archive_session_highlights(connection, session_id)
+        connection.execute(
+            "DELETE FROM preparation_highlights WHERE session_id = ?", (session_id,)
+        )
+        connection.execute(
+            "DELETE FROM preparation_session_segments WHERE session_id = ?", (session_id,)
+        )
+        connection.execute(
+            "DELETE FROM preparation_session_documents WHERE session_id = ?", (session_id,)
+        )
 
     # ── 段落查询 ──────────────────────────────────────────────
 
@@ -504,9 +522,12 @@ class PreparationSessionModule:
             return self._question_manager.list_questions(connection, session)
 
     def generate_candidate_questions(
-        self, class_id: str, teacher: UserView,
+        self,
+        class_id: str,
+        request: CandidateQuestionGenerationRequest,
+        teacher: UserView,
     ) -> CandidateQuestionGenerationView:
-        """根据教学重点生成候选题。"""
+        """根据选中的教学重点生成指定数量候选题。"""
         with self._database.connect() as connection:
             session = self._require_session(connection, class_id, teacher)
             paragraph_rows = [
@@ -521,7 +542,7 @@ class PreparationSessionModule:
                 ).fetchall()
             ]
             return self._question_manager.generate_candidate_questions(
-                connection, session, paragraph_rows, teacher.id,
+                connection, session, paragraph_rows, request, teacher.id,
             )
 
     def create_question(

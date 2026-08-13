@@ -15,6 +15,7 @@ from app.teaching_classes._deps import (
 from app.teaching_classes.models import (
     AddHighlightRequest,
     CandidateQuestionGenerationView,
+    CandidateQuestionGenerationRequest,
     ConfirmCandidateQuestionRequest,
     CreateQuestionRequest,
     DeleteQuestionRequest,
@@ -24,6 +25,8 @@ from app.teaching_classes.models import (
     PreparationSessionView,
     PublishHomeworkRequest,
     PublishHomeworkResponse,
+    PublishQuestionRequest,
+    QuestionPublicationView,
     QuestionListView,
     QuestionView,
     RemoveHighlightRequest,
@@ -225,15 +228,16 @@ def confirm_candidate_question(
 @router.post(
     "/{class_id}/preparation-session/questions/candidates",
     response_model=ApiResponse[CandidateQuestionGenerationView],
-    responses={400: documented_error("没有可用教学重点"), 403: documented_error("只有教师可以生成候选题"), 404: documented_error("备课会话不存在")},
+    responses={400: documented_error("出题重点或题数无效"), 403: documented_error("只有教师可以生成候选题"), 404: documented_error("备课会话不存在")},
 )
 def generate_candidate_questions(
     request: Request,
     class_id: str,
+    body: CandidateQuestionGenerationRequest,
     teacher: TeacherDep,
     preparation_sessions: PreparationSessionDep,
 ) -> ApiResponse[CandidateQuestionGenerationView]:
-    result = preparation_sessions.generate_candidate_questions(class_id, teacher)
+    result = preparation_sessions.generate_candidate_questions(class_id, body, teacher)
     return success_response(request, code="CANDIDATE_QUESTIONS_GENERATED", message=result.message, data=result)
 
 
@@ -251,6 +255,28 @@ def delete_question(
 ) -> ApiResponse[None]:
     preparation_sessions.delete_question(class_id, body, teacher)
     return success_response(request, code="QUESTION_DELETED", message="题目删除成功", data=None)
+
+
+@router.post(
+    "/{class_id}/preparation-session/questions/{question_id}/publish",
+    response_model=ApiResponse[QuestionPublicationView],
+    responses={
+        400: documented_error("题目尚未确认或作业字段非法"),
+        403: documented_error("只有教师可以发布题目"),
+        404: documented_error("备课会话或题目不存在"),
+        409: documented_error("该题目已发布此类型内容"),
+    },
+)
+def publish_preparation_question(
+    request: Request,
+    class_id: str,
+    question_id: str,
+    body: PublishQuestionRequest,
+    teacher: TeacherDep,
+    publication_module: PublicationModuleDep,
+) -> ApiResponse[QuestionPublicationView]:
+    result = publication_module.publish_question(class_id, question_id, body, teacher)
+    return success_response(request, code="QUESTION_PUBLISHED", message="题目发布成功", data=result)
 
 
 @router.post(

@@ -8,10 +8,11 @@ import type {
   PreparationSessionView,
   QuestionListView,
   QuestionType,
+  QuestionView,
   TeachingClassView,
   UpdateQuestionRequest,
-  PublishHomeworkRequest,
   KnowledgeBaseDocumentView,
+  PublishQuestionRequest,
 } from "../api/client";
 import StatusPanel from "./StatusPanel.vue";
 import KnowledgeBaseDocumentPicker from "./KnowledgeBaseDocumentPicker.vue";
@@ -26,8 +27,6 @@ const props = defineProps<{
   paragraphs: PreparationSessionParagraphView[];
   highlightedParagraphs: PreparationSessionParagraphWithHighlightsView[];
   preparationQuestions: QuestionListView;
-  publishFeedback: "classroom" | "homework" | "error" | null;
-  publishErrorMessage: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -38,8 +37,7 @@ const emit = defineEmits<{
   updateQuestion: [classId: string, questionId: string, body: UpdateQuestionRequest];
   confirmQuestion: [classId: string, questionId: string];
   deleteQuestion: [classId: string, questionId: string];
-  publish: [classId: string];
-  publishHomework: [classId: string, body: PublishHomeworkRequest];
+  publishQuestion: [classId: string, questionId: string, request: PublishQuestionRequest];
   selectDocuments: [classId: string, body: { documentIds: string[] }];
   refreshDocuments: [classId: string];
   deleteDocument: [classId: string, documentId: string];
@@ -47,16 +45,20 @@ const emit = defineEmits<{
 
 const selectedDocumentIds = ref<string[]>([]);
 const showDocumentPicker = ref(false);
-const isPublishing = ref(false);
-const isPublishingHomework = ref(false);
 const errorMessage = ref<string | null>(null);
-const publishSuccess = ref(false);
-const homeworkPublishSuccess = ref(false);
 type HighlightRange = { paragraphOrdinal: number; startOffset: number; endOffset: number };
 
 // 一次备课操作允许先连续选择多处重点，再统一保存；不能用单值保存，否则后一次选择会覆盖前一次。
 const pendingHighlightRanges = ref<HighlightRange[]>([]);
+// 当前打开操作气泡的重点；同一时间只显示一个删除入口，避免干扰正文阅读和划选。
+const activeHighlightKey = ref<string | null>(null);
 const editingQuestionId = ref<string | null>(null);
+const homeworkQuestionId = ref<string | null>(null);
+const homeworkForm = reactive({
+  title: "",
+  description: "",
+  dueAt: "",
+});
 const questionForm = reactive({
   type: "single_choice" as QuestionType,
   stem: "",
@@ -66,13 +68,6 @@ const questionForm = reactive({
   highlightSourceIds: [] as string[],
   hint: "",
   explanation: "",
-});
-
-const publishMode = ref<'classroom' | 'homework'>('classroom'); // 发布模式：课堂练习或作业
-const homeworkForm = reactive({
-  title: '',
-  description: '',
-  dueAt: '',
 });
 
 const hasHighlights = computed(() => props.preparationQuestions.canGenerateFromHighlights || props.highlightedParagraphs.some((paragraph) => paragraph.hasHighlights));
@@ -136,18 +131,11 @@ watch(() => props.session, (session) => {
   showDocumentPicker.value = !session?.knowledgeBaseId;
 }, { immediate: true });
 
-watch(() => props.publishFeedback, (feedback) => {
-  if (!feedback) return;
-  isPublishing.value = false;
-  isPublishingHomework.value = false;
-  publishSuccess.value = feedback === "classroom";
-  homeworkPublishSuccess.value = feedback === "homework";
-});
-
-watch(publishMode, () => {
-  publishSuccess.value = false;
-  homeworkPublishSuccess.value = false;
-});
+watch(() => props.preparationQuestions.items, (questions) => {
+  if (!homeworkQuestionId.value) return;
+  const question = questions.find((item) => item.id === homeworkQuestionId.value);
+  if (question?.publishedHomework) homeworkQuestionId.value = null;
+}, { deep: true });
 
 function toggleDocument(documentId: string): void {
   selectedDocumentIds.value = toggleSelection(selectedDocumentIds.value, documentId);
@@ -160,6 +148,7 @@ function selectDocuments(): void {
 
 function openDocumentPicker(): void {
   pendingHighlightRanges.value = [];
+  activeHighlightKey.value = null;
   selectedDocumentIds.value = [...(props.session?.selectedDocumentIds ?? [])];
   showDocumentPicker.value = true;
 }
@@ -181,49 +170,64 @@ function requestDeleteDocument(document: KnowledgeBaseDocumentView): void {
 
 function exitCurrentDocuments(): void {
   pendingHighlightRanges.value = [];
+  activeHighlightKey.value = null;
   showDocumentPicker.value = true;
   selectedDocumentIds.value = [];
   emit("selectDocuments", props.selectedClass.id, { documentIds: [] });
 }
-function publish(): void { isPublishing.value = true; publishSuccess.value = false; emit("publish", props.selectedClass.id); }
-function publishHomework(): void {
-  if (!validateHomeworkForm()) return;
 
-  isPublishingHomework.value = true;
-  homeworkPublishSuccess.value = false;
+function defaultHomeworkDueAt(): string {
+  const dueAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  dueAt.setMinutes(dueAt.getMinutes() - dueAt.getTimezoneOffset());
+  return dueAt.toISOString().slice(0, 16);
+}
 
-  const dueAtTimestamp = Math.floor(new Date(homeworkForm.dueAt).getTime() / 1000);
-  const request: PublishHomeworkRequest = {
+function publishManualClassroomQuestion(questionId: string): void {
+  errorMessage.value = null;
+  emit("publishQuestion", props.selectedClass.id, questionId, {
+    mode: "classroom",
+    title: "",
+    description: "",
+    dueAt: null,
+  });
+}
+
+function toggleManualHomeworkForm(question: QuestionView): void {
+  errorMessage.value = null;
+  if (homeworkQuestionId.value === question.id) {
+    homeworkQuestionId.value = null;
+    return;
+  }
+  homeworkQuestionId.value = question.id;
+  homeworkForm.title = `课堂作业：${question.stem.slice(0, 30)}`;
+  homeworkForm.description = "";
+  homeworkForm.dueAt = defaultHomeworkDueAt();
+}
+
+function publishManualHomeworkQuestion(questionId: string): void {
+  if (!homeworkForm.title.trim()) {
+    errorMessage.value = "请填写作业标题";
+    return;
+  }
+  if (!homeworkForm.dueAt) {
+    errorMessage.value = "请选择作业截止时间";
+    return;
+  }
+  const dueAt = new Date(homeworkForm.dueAt);
+  if (dueAt <= new Date()) {
+    errorMessage.value = "作业截止时间必须大于当前时间";
+    return;
+  }
+  errorMessage.value = null;
+  const request: PublishQuestionRequest = {
+    mode: "homework",
     title: homeworkForm.title.trim(),
     description: homeworkForm.description.trim(),
-    dueAt: dueAtTimestamp,
+    dueAt: Math.floor(dueAt.getTime() / 1000),
   };
-
-  emit("publishHomework", props.selectedClass.id, request);
+  emit("publishQuestion", props.selectedClass.id, questionId, request);
 }
 
-function validateHomeworkForm(): boolean {
-  if (!homeworkForm.title.trim()) {
-    errorMessage.value = '请填写作业标题';
-    return false;
-  }
-
-  if (!homeworkForm.dueAt) {
-    errorMessage.value = '请选择截止时间';
-    return false;
-  }
-
-  const selectedDate = new Date(homeworkForm.dueAt);
-  const now = new Date();
-  if (selectedDate <= now) {
-    // 文案与后端权威校验保持一致（publication.py HOMEWORK_DUE_AT_INVALID），前端校验仅为提前拦截。
-    errorMessage.value = '作业截止时间必须大于当前时间';
-    return false;
-  }
-
-  errorMessage.value = null;
-  return true;
-}
 function selectParagraphText(event: MouseEvent | KeyboardEvent, paragraphOrdinal: number): void {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
@@ -254,8 +258,18 @@ function addSelectedHighlight(): void {
   for (const range of ranges) emit("addHighlight", props.selectedClass.id, range);
 }
 
-function segments(paragraph: PreparationSessionParagraphWithHighlightsView): Array<{ text: string; id: string | null; pending: boolean }> {
-  const result: Array<{ text: string; id: string | null; pending: boolean }> = [];
+function segments(paragraph: PreparationSessionParagraphWithHighlightsView): Array<{
+  text: string;
+  id: string | null;
+  pending: boolean;
+  pendingRange: HighlightRange | null;
+}> {
+  const result: Array<{
+    text: string;
+    id: string | null;
+    pending: boolean;
+    pendingRange: HighlightRange | null;
+  }> = [];
   const pending = pendingHighlightRanges.value.filter((item) => item.paragraphOrdinal === paragraph.ordinal);
   const boundaries = new Set<number>([0, paragraph.content.length]);
   for (const highlight of paragraph.highlights) {
@@ -277,9 +291,41 @@ function segments(paragraph: PreparationSessionParagraphWithHighlightsView): Arr
       text: paragraph.content.slice(start, end),
       id: highlight?.id ?? null,
       pending: !highlight && pendingHighlight !== undefined,
+      pendingRange: !highlight ? pendingHighlight ?? null : null,
     });
   }
   return result;
+}
+
+function toggleHighlightBubble(highlightId: string): void {
+  const key = `saved:${highlightId}`;
+  activeHighlightKey.value = activeHighlightKey.value === key ? null : key;
+}
+
+function removeHighlight(highlightId: string): void {
+  activeHighlightKey.value = null;
+  emit("removeHighlight", props.selectedClass.id, highlightId);
+}
+
+function pendingHighlightKey(range: HighlightRange | null): string {
+  if (!range) return "";
+  return `pending:${range.paragraphOrdinal}:${range.startOffset}:${range.endOffset}`;
+}
+
+function togglePendingHighlightBubble(range: HighlightRange | null): void {
+  const key = pendingHighlightKey(range);
+  if (!key) return;
+  activeHighlightKey.value = activeHighlightKey.value === key ? null : key;
+}
+
+function removePendingHighlight(range: HighlightRange | null): void {
+  if (!range) return;
+  activeHighlightKey.value = null;
+  pendingHighlightRanges.value = pendingHighlightRanges.value.filter((item) =>
+    item.paragraphOrdinal !== range.paragraphOrdinal
+    || item.startOffset !== range.startOffset
+    || item.endOffset !== range.endOffset,
+  );
 }
 
 function resetQuestionForm(): void {
@@ -360,9 +406,9 @@ function toggleAnswer(index: number): void {
 
 <template>
   <section class="materials-page">
-    <header class="page-header materials-header"><p class="eyebrow">{{ selectedClass.name }}</p><h1>教师备课 · 课件备课</h1><p class="muted">教师课件仅本班学习者可见；课堂问题可发布为即时练习或作业。</p></header>
+    <header class="page-header materials-header"><p class="eyebrow">{{ selectedClass.name }}</p><h1>教师备课 · 课件备课</h1><p class="muted">保存后的教学重点和备课题目会持续保留；课堂问题可按题目发布为即时练习或作业。</p></header>
     <nav class="step-nav" aria-label="备课步骤">
-      <span class="step-chip active"><b>1</b>从知识库选文档</span><span class="step-chip" :class="{ active: session?.parseStatus === 'completed' }"><b>2</b>在线划重点</span><span class="step-chip" :class="{ active: manualQuestions.length > 0 }"><b>3</b>手工建题</span><span class="step-chip" :class="{ active: preparationQuestions.isPublishUnlocked }"><b>4</b>发布</span>
+      <span class="step-chip active"><b>1</b>从知识库选文档</span><span class="step-chip" :class="{ active: session?.parseStatus === 'completed' }"><b>2</b>在线划重点</span><span class="step-chip" :class="{ active: manualQuestions.length > 0 }"><b>3</b>手工建题</span>
     </nav>
     <section v-if="session" class="session-status-card" aria-label="备课状态"><span v-if="session.knowledgeBaseId">知识库文档：已选 {{ session.selectedDocumentIds?.length ?? 0 }} 份</span><span v-else>知识库文档：尚未选择</span><span v-if="session.parseStatus === 'parsing'">正在装载段落</span><span v-else-if="session.knowledgeBaseId">可开始划重点</span></section>
     <p v-if="errorMessage && !(session?.parseStatus === 'completed' && !showDocumentPicker)" class="error-card" role="alert">{{ errorMessage }}</p>
@@ -390,143 +436,29 @@ function toggleAnswer(index: number): void {
     </section>
 
     <section v-if="session?.parseStatus === 'completed' && !showDocumentPicker && highlightedParagraphs.length" class="prep-step parsing-results">
-      <div class="section-heading step-head"><span class="step-no">2</span><div><h2>在线划重点</h2><p>可连续选中多段文字，统一保存；点击黄色高亮可取消已保存标注。</p><p v-if="pendingHighlightRanges.length" class="selection-preview" role="status">已选中 {{ pendingHighlightRanges.length }} 段内容，点击"保存当前选择"后统一写入备课重点。</p></div><div class="highlight-actions"><button type="button" class="button secondary" @click="openDocumentPicker">更换文档</button><button type="button" class="button danger" @click="exitCurrentDocuments">退出当前文档</button><button type="button" class="button primary" :disabled="pendingHighlightRanges.length === 0" @click="addSelectedHighlight">保存当前选择</button></div></div>
+      <div class="section-heading step-head"><span class="step-no">2</span><div><h2>在线划重点</h2><p>可连续选中多段文字，统一保存；点击黄色重点后，在下方气泡中点击“删除”取消标注。</p><p v-if="pendingHighlightRanges.length" class="selection-preview" role="status">已选中 {{ pendingHighlightRanges.length }} 段内容，点击"保存当前选择"后统一写入备课重点。</p></div><div class="highlight-actions"><button type="button" class="button secondary" @click="openDocumentPicker">更换文档</button><button type="button" class="button danger" @click="exitCurrentDocuments">退出当前文档</button><button type="button" class="button primary" :disabled="pendingHighlightRanges.length === 0" @click="addSelectedHighlight">保存当前选择</button></div></div>
       <div class="step-summary"><span>已选 {{ paragraphGroups.length }} 份文档</span><strong>{{ highlightedParagraphs.reduce((total, item) => total + item.highlights.length, 0) }} 处重点</strong></div>
-      <section v-for="group in paragraphGroups" :key="group.documentId ?? 'legacy'" class="document-highlight-group"><div class="document-group-heading"><strong>{{ group.label }}</strong><span>{{ group.paragraphs.length }} 个段落</span></div><article v-for="paragraph in group.paragraphs" :key="`${group.documentId ?? 'legacy'}-${paragraph.ordinal}`" class="paragraph-card para" :class="{ key: paragraph.hasHighlights }"><div class="para-meta"><span class="para-tag">{{ paragraph.hasHighlights ? "重点段落" : "第 " + paragraph.ordinal + " 段" }}</span><span>分段规则：{{ paragraph.blockType }}</span></div><p class="paragraph-text" @mouseup="selectParagraphText($event, paragraph.ordinal)" @keyup="selectParagraphText($event, paragraph.ordinal)"><template v-for="(segment, index) in segments(paragraph)" :key="`${paragraph.ordinal}-${index}`"><mark v-if="segment.id" class="highlight" role="button" tabindex="0" :aria-label="`取消重点：${segment.text}`" @click.stop="emit('removeHighlight', selectedClass.id, segment.id)" @keydown.enter.stop="emit('removeHighlight', selectedClass.id, segment.id)" @keydown.space.prevent.stop="emit('removeHighlight', selectedClass.id, segment.id)" title="点击取消重点">{{ segment.text }}</mark><mark v-else-if="segment.pending" class="highlight highlight-pending">{{ segment.text }}</mark><span v-else>{{ segment.text }}</span></template></p></article></section>
+      <section v-for="group in paragraphGroups" :key="group.documentId ?? 'legacy'" class="document-highlight-group"><div class="document-group-heading"><strong>{{ group.label }}</strong><span>{{ group.paragraphs.length }} 个段落</span></div><article v-for="paragraph in group.paragraphs" :key="`${group.documentId ?? 'legacy'}-${paragraph.ordinal}`" class="paragraph-card para" :class="{ key: paragraph.hasHighlights }"><div class="para-meta"><span class="para-tag">{{ paragraph.hasHighlights ? "重点段落" : "第 " + paragraph.ordinal + " 段" }}</span><span>分段规则：{{ paragraph.blockType }}</span></div><p class="paragraph-text" @click="activeHighlightKey = null" @mouseup="selectParagraphText($event, paragraph.ordinal)" @keyup="selectParagraphText($event, paragraph.ordinal)"><template v-for="(segment, index) in segments(paragraph)" :key="`${paragraph.ordinal}-${index}`"><span v-if="segment.id" class="highlight-anchor"><mark class="highlight" role="button" tabindex="0" :aria-label="`打开重点操作：${segment.text}`" @click.stop="toggleHighlightBubble(segment.id)" @keydown.enter.stop="toggleHighlightBubble(segment.id)" @keydown.space.prevent.stop="toggleHighlightBubble(segment.id)" title="点击显示删除操作">{{ segment.text }}</mark><span v-if="activeHighlightKey === `saved:${segment.id}`" class="highlight-bubble" role="tooltip"><button type="button" aria-label="删除重点" @click.stop="removeHighlight(segment.id)">删除</button></span></span><span v-else-if="segment.pending" class="highlight-anchor"><mark class="highlight highlight-pending" role="button" tabindex="0" :aria-label="`打开待保存重点操作：${segment.text}`" @click.stop="togglePendingHighlightBubble(segment.pendingRange)" @keydown.enter.stop="togglePendingHighlightBubble(segment.pendingRange)" @keydown.space.prevent.stop="togglePendingHighlightBubble(segment.pendingRange)" title="点击显示删除操作">{{ segment.text }}</mark><span v-if="activeHighlightKey === pendingHighlightKey(segment.pendingRange)" class="highlight-bubble" role="tooltip"><button type="button" aria-label="删除待保存重点" @click.stop="removePendingHighlight(segment.pendingRange)">删除</button></span></span><span v-else>{{ segment.text }}</span></template></p></article></section>
       <p v-if="!hasHighlights" class="muted">尚未标注重点；标注后可在右侧“小 A”中生成候选题。</p>
     </section>
     <StatusPanel v-else-if="session?.parseStatus === 'completed' && !showDocumentPicker" variant="empty" title="暂无解析结果" detail="文档解析完成，但未提取到有效段落内容。" />
 
     <section v-if="session?.parseStatus === 'completed' && !showDocumentPicker && highlightedParagraphs.length" class="prep-step questions-section">
-      <div class="section-heading step-head"><span class="step-no">3</span><div><h2>手工建题</h2><p>这里仅维护教师手工创建的题目；AI 出题与候选题审核统一在右侧“小 A”中完成。</p></div></div>
-      <p v-if="errorMessage" class="error-card question-error" role="alert">{{ errorMessage }}</p><p v-if="publishErrorMessage" class="error-card publish-error" role="alert">{{ publishErrorMessage }}</p>
+      <div class="section-heading step-head"><span class="step-no">3</span><div><h2>手工建题</h2><p>这里仅维护教师手工创建的题目；AI 出题、候选题审核和逐题发布统一在右侧“小 A”中完成。</p></div></div>
+      <p v-if="errorMessage" class="error-card question-error" role="alert">{{ errorMessage }}</p>
       <form class="question-form editor-card" novalidate @submit.prevent="saveQuestion"><h3>{{ editingQuestionId ? '编辑题目' : '新建手工题' }}</h3><label>题型<select v-model="questionForm.type"><option value="single_choice">单选题</option><option value="multiple_choice">多选题</option></select></label><label>题干<input v-model="questionForm.stem" /></label><label>选项（每行一个）<textarea v-model="questionForm.optionsText" rows="4" /></label><fieldset v-if="questionOptions.length"><legend>标准答案（请选择）</legend><p class="form-hint">请点击这道题的正确答案；单选题只能选一个，多选题至少选一个。</p><ChoiceOptionList :options="questionOptions" :single-choice="questionForm.type === 'single_choice'" :selected-answers="questionForm.answers" :correct-answers="[]" :revealed="false" variant="compact" @select="toggleAnswer" /></fieldset><label>知识点（逗号分隔）<input v-model="questionForm.knowledgePointsText" /></label><label>提示<textarea v-model="questionForm.hint" rows="2" /></label><label>解析<textarea v-model="questionForm.explanation" rows="3" /></label><div class="form-actions"><button class="button primary" type="submit">{{ editingQuestionId ? '保存修改' : '创建手工题' }}</button><button v-if="editingQuestionId" class="button secondary" type="button" @click="resetQuestionForm">取消编辑</button></div></form>
-      <div v-if="manualQuestions.length" class="question-list candidate-column"><article v-for="question in manualQuestions" :key="question.id" class="question-card candidate-card"><div class="question-meta"><strong>{{ question.type === 'single_choice' ? '单选题' : '多选题' }}</strong><span>手工题·已确认</span></div><h3>{{ question.stem }}</h3><ol><li v-for="(option, index) in question.options" :key="index" :class="{ correct: question.answers.includes(index) }">{{ option }}</li></ol><p class="knowledge-points">知识点：{{ question.knowledgePoints.join('、') }}</p><div class="form-actions"><button type="button" class="button secondary" @click="editQuestion(question)">编辑</button><button type="button" class="button danger" @click="emit('deleteQuestion', selectedClass.id, question.id)">删除</button></div></article></div><p v-else class="muted">暂无手工题，请创建第一道题。</p>
-      <div class="publish-gate" :class="{ unlocked: preparationQuestions.isPublishUnlocked }"><strong>{{ preparationQuestions.isPublishUnlocked ? '发布步骤已解锁' : '发布步骤未解锁' }}</strong><span>{{ preparationQuestions.isPublishUnlocked ? '全部候选题已处理，且至少有一道已确认题目。' : '需至少确认一道题，并处理完全部候选题。' }}</span></div>
+      <div v-if="manualQuestions.length" class="question-list candidate-column"><article v-for="question in manualQuestions" :key="question.id" class="question-card candidate-card"><div class="question-meta"><strong>{{ question.type === 'single_choice' ? '单选题' : '多选题' }}</strong><span>手工题·已确认</span></div><h3>{{ question.stem }}</h3><ol><li v-for="(option, index) in question.options" :key="index" :class="{ correct: question.answers.includes(index) }">{{ option }}</li></ol><p class="knowledge-points">知识点：{{ question.knowledgePoints.join('、') }}</p><div class="form-actions"><button type="button" class="button secondary" @click="editQuestion(question)">编辑</button><span v-if="question.publishedClassroom" class="published-tag">课堂练习已发布</span><button v-else type="button" class="button secondary" @click="publishManualClassroomQuestion(question.id)">发布课堂练习</button><span v-if="question.publishedHomework" class="published-tag">作业已发布</span><button v-else type="button" class="button secondary" @click="toggleManualHomeworkForm(question)">发布作业</button><button type="button" class="button danger" @click="emit('deleteQuestion', selectedClass.id, question.id)">删除</button></div><form v-if="homeworkQuestionId === question.id && !question.publishedHomework" class="question-publication-form" novalidate @submit.prevent="publishManualHomeworkQuestion(question.id)"><label>作业标题<input v-model="homeworkForm.title" type="text" maxlength="200" /></label><label>作业描述<textarea v-model="homeworkForm.description" rows="2" maxlength="1000" /></label><label>截止时间<input v-model="homeworkForm.dueAt" type="datetime-local" /></label><div class="form-actions"><button class="button primary" type="submit">发布这道题</button><button class="button secondary" type="button" @click="homeworkQuestionId = null">取消</button></div></form></article></div><p v-else class="muted">暂无手工题，请创建第一道题。</p>
     </section>
 
-    <!-- 步骤4：发布区域（与步骤1/2/3平级） -->
-    <section v-if="session?.parseStatus === 'completed' && !showDocumentPicker && highlightedParagraphs.length && preparationQuestions.isPublishUnlocked" class="prep-step publish-section">
-      <div class="section-heading step-head">
-        <span class="step-no">4</span><div>
-          <h2>发布课程内容</h2>
-          <p>将备课内容发布为正式课程内容和课堂练习/作业，供学习者查看。</p>
-        </div>
-      </div>
-
-      <!-- 发布模式选择 -->
-      <div v-if="!publishSuccess && !homeworkPublishSuccess" class="publish-mode-selector">
-        <label class="publish-mode-card" :class="{ selected: publishMode === 'classroom' }">
-          <input
-            type="radio"
-            v-model="publishMode"
-            value="classroom"
-            :disabled="isPublishing || isPublishingHomework"
-          />
-          发布为课堂练习
-        </label>
-        <label class="publish-mode-card" :class="{ selected: publishMode === 'homework' }">
-          <input
-            type="radio"
-            v-model="publishMode"
-            value="homework"
-            :disabled="isPublishing || isPublishingHomework"
-          />
-          发布为作业
-        </label>
-      </div>
-
-      <!-- 课堂练习发布 -->
-      <div v-if="publishMode === 'classroom' && !publishSuccess" class="publish-option-card">
-        <div class="section-heading">
-          <div>
-            <h3>课堂练习发布</h3>
-            <p>发布为课堂练习，学习者可以立即查看和练习。</p>
-          </div>
-          <button type="button" class="button primary" :disabled="isPublishing" @click="publish">
-            {{ isPublishing ? '发布中...' : '发布课堂练习' }}
-          </button>
-        </div>
-
-        <div v-if="session?.currentStep === 'publishing' && !publishSuccess" class="info-card">
-          <strong>发布状态</strong>
-          <span>发布进行中，请稍候...</span>
-        </div>
-      </div>
-
-      <!-- 作业发布 -->
-      <div v-if="publishMode === 'homework' && !homeworkPublishSuccess" class="homework-publish-section publish-option-card">
-        <div class="section-heading">
-          <div>
-            <h3>作业发布</h3>
-            <p>发布为作业，学习者需要在截止时间前完成。</p>
-          </div>
-        </div>
-
-        <!-- 作业表单 -->
-        <form class="homework-form" novalidate @submit.prevent="publishHomework">
-          <label>
-            作业标题
-            <input
-              v-model="homeworkForm.title"
-              type="text"
-              placeholder="请输入作业标题"
-              required
-              :disabled="isPublishingHomework"
-            />
-          </label>
-
-          <label>
-            作业描述
-            <textarea
-              v-model="homeworkForm.description"
-              placeholder="请输入作业描述（可选）"
-              rows="3"
-              :disabled="isPublishingHomework"
-            />
-          </label>
-
-          <label>
-            截止时间
-            <input
-              v-model="homeworkForm.dueAt"
-              type="datetime-local"
-              required
-              :disabled="isPublishingHomework"
-            />
-          </label>
-
-          <div class="form-actions">
-            <button
-              class="button primary"
-              type="submit"
-              :disabled="isPublishingHomework"
-            >
-              {{ isPublishingHomework ? '发布中...' : '发布作业' }}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- 发布成功通知 -->
-      <div v-if="publishSuccess" class="success-card">
-        <strong>发布成功！</strong>
-        <span>课程内容已成功发布，学习者现在可以查看课程内容和课堂练习。</span>
-      </div>
-
-      <div v-if="homeworkPublishSuccess" class="success-card">
-        <strong>作业发布成功！</strong>
-        <span>作业已成功发布，学习者现在可以查看作业内容。</span>
-      </div>
-    </section>
   </section>
 </template>
 
 <style scoped>
-.materials-page,.upload-section,.parsing-section,.parsing-results,.questions-section,.publish-section{display:grid;gap:16px}.session-status-card{display:flex;gap:18px;flex-wrap:wrap}.error-card{color:#b42318}.success-card{color:#17613a;background:#dff5e7;padding:14px;border-radius:10px}.info-card{color:#66736b;background:#f0f2f1;padding:14px;border-radius:10px}.step-nav{display:flex;gap:10px;flex-wrap:wrap}.step-nav span{padding:8px 12px;border-radius:999px;background:#eef2ef;color:#66736b}.step-nav .active{background:#dcefe2;color:#17613a}.section-heading,.form-actions,.question-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.form-actions{margin-top:20px}.paragraph-card,.question-card,.question-form{padding:16px;border:1px solid #dce5de;border-radius:10px;display:grid;gap:10px}.paragraph-text{white-space:pre-wrap;line-height:1.8;user-select:text}.highlight{background:#ffe58f;cursor:pointer;padding:1px 0}.question-form label{display:grid;gap:5px}.question-form input,.question-form select,.question-form textarea{font:inherit;padding:8px;border:1px solid #cbd8cf;border-radius:6px}.question-card ol{margin:0}.question-card .correct{font-weight:700;color:#17613a}.question-meta span{color:#66736b}.publish-gate{display:grid;gap:4px;padding:14px;border-radius:10px;background:#fff4db;color:#7a4d00}.publish-gate.unlocked{background:#dff5e7;color:#17613a}.button.danger{color:#b42318}.muted{color:#66736b}
+.materials-page,.upload-section,.parsing-section,.parsing-results,.questions-section,.publish-section{display:grid;gap:16px}.session-status-card{display:flex;gap:18px;flex-wrap:wrap}.error-card{color:#b42318}.success-card{color:#17613a;background:#dff5e7;padding:14px;border-radius:10px}.info-card{color:#66736b;background:#f0f2f1;padding:14px;border-radius:10px}.step-nav{display:flex;gap:10px;flex-wrap:wrap}.step-nav span{padding:8px 12px;border-radius:999px;background:#eef2ef;color:#66736b}.step-nav .active{background:#dcefe2;color:#17613a}.section-heading,.form-actions,.question-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.form-actions{margin-top:20px}.paragraph-card,.question-card,.question-form{padding:16px;border:1px solid #dce5de;border-radius:10px;display:grid;gap:10px}.paragraph-text{white-space:pre-wrap;line-height:1.8;user-select:text}.highlight{background:#ffe58f;cursor:pointer;padding:1px 0}.question-form label{display:grid;gap:5px}.question-form input,.question-form select,.question-form textarea{font:inherit;padding:8px;border:1px solid #cbd8cf;border-radius:6px}.question-card ol{margin:0}.question-card .correct{font-weight:700;color:#17613a}.question-meta span{color:#66736b}.button.danger{color:#b42318}.muted{color:#66736b}
 .empty-hint{padding:18px;border:1px dashed #cbd8cf;border-radius:12px;color:#66736b}
 
 .highlight-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}.document-highlight-group{display:grid;gap:10px;padding:14px;border:1px solid #e2e9e3;border-radius:14px;background:#fbfdfb}.document-group-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;color:#314d40}.document-group-heading span{color:#687970;font-size:12px}
+.highlight-anchor{position:relative;display:inline-block}.highlight-bubble{position:absolute;z-index:2;top:calc(100% + 7px);left:50%;transform:translateX(-50%);padding:4px;border:1px solid #e2c77c;border-radius:8px;background:#fffdf5;box-shadow:0 6px 14px rgba(93,70,21,.16)}.highlight-bubble::before{position:absolute;top:-5px;left:50%;width:8px;height:8px;border-top:1px solid #e2c77c;border-left:1px solid #e2c77c;background:#fffdf5;content:"";transform:translateX(-50%) rotate(45deg)}.highlight-bubble button{position:relative;border:0;border-radius:5px;padding:4px 8px;background:#fff1c7;color:#865a18;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.highlight-bubble button:hover{background:#ffe6a3}
 
 /* 作业发布相关样式 */
 .publish-mode-selector {
@@ -595,7 +527,7 @@ function toggleAnswer(index: number): void {
 .session-status-card { justify-content: flex-end; gap: 8px; }
 .session-status-card span { padding: 8px 12px; border: 1px solid #dce3de; border-radius: 999px; background: #fff; color: #687970; font-size: 12px; font-weight: 700; }
 .session-status-card span:first-child { color: var(--prep-green); background: #f0f8f3; }
-.step-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 6px; border: 1px solid #dce3de; border-radius: 15px; background: #edf2ee; }
+.step-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 6px; border: 1px solid #dce3de; border-radius: 15px; background: #edf2ee; }
 .step-chip { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border-radius: 11px; color: #687970; font-size: 13px; font-weight: 800; }
 .step-chip b { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #dce5de; color: #687970; font-size: 12px; }
 .step-chip.active { background: #fff; color: var(--prep-green); box-shadow: 0 4px 12px rgba(42, 60, 51, .06); }
@@ -628,7 +560,7 @@ function toggleAnswer(index: number): void {
 .para.key .para-tag { background: #ffedc8; color: #865a18; }
 .question-form,.candidate-column { gap: 14px; padding: 18px; border: 1px solid #dce3de; border-radius: 15px; background: #fbfdfb; }
 .questions-section { grid-template-columns: minmax(280px, .75fr) minmax(0, 1.25fr); align-items: start; }
-.questions-section > .section-heading,.questions-section > .info-card,.questions-section > .publish-gate { grid-column: 1 / -1; }
+.questions-section > .section-heading,.questions-section > .info-card { grid-column: 1 / -1; }
 .questions-section > .question-form { grid-column: 1; }
 .questions-section > .candidate-column { grid-column: 2; }
 .candidate-column { display: grid; }
@@ -641,7 +573,7 @@ function toggleAnswer(index: number): void {
 .question-form fieldset { display: grid; gap: 8px; margin: 0; padding: 12px; border: 1px solid #dce3de; border-radius: 10px; }
 .question-form fieldset legend { padding: 0 5px; color: #314d40; font-weight: 800; }
 .form-hint { margin: -2px 0 2px; color: #687970; font-size: 13px; line-height: 1.5; }
-.question-error,.publish-error { grid-column: 1 / -1; margin: 0; padding: 12px 14px; border-radius: 10px; background: #fff1f0; }
+.question-error { grid-column: 1 / -1; margin: 0; padding: 12px 14px; border-radius: 10px; background: #fff1f0; }
 .question-form input,.question-form select,.question-form textarea,.homework-form input,.homework-form textarea { width: 100%; box-sizing: border-box; padding: 10px 11px; border: 1px solid #cbd8cf; border-radius: 10px; background: #fff; }
 .question-form textarea,.homework-form textarea { resize: vertical; }
 .publish-section.publish-card { padding: 24px; border-radius: 18px; background: linear-gradient(180deg, #fff 0%, #fbfdfb 100%); }
@@ -655,6 +587,10 @@ function toggleAnswer(index: number): void {
 .homework-form { margin-top: 0; }
 .homework-form label { gap: 6px; font-weight: 800; }
 .button.danger { color: #b42318; }
+.published-tag { display: inline-flex; min-height: 38px; align-items: center; padding: 0 10px; border-radius: 9px; color: #146b4a; background: #e2f2e8; font-size: 12px; font-weight: 800; }
+.question-publication-form { display: grid; gap: 9px; margin-top: 4px; padding: 12px; border: 1px solid #cfe1d5; border-radius: 10px; background: #eef7f1; }
+.question-publication-form label { display: grid; gap: 4px; color: #52675c; font-size: 12px; font-weight: 700; }
+.question-publication-form input,.question-publication-form textarea { width: 100%; box-sizing: border-box; padding: 8px 9px; border: 1px solid #c9d9ce; border-radius: 7px; color: #26382f; background: #fff; font: inherit; font-size: 12px; }
 @media (max-width: 820px) {
   .session-status-card { justify-content: flex-start; }
   .questions-section { grid-template-columns: 1fr; }

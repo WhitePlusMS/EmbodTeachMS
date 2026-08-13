@@ -77,6 +77,7 @@ def test_candidate_questions_use_configured_gateway_and_persist_review_state(tmp
         response = client.post(
             f"/api/teaching-classes/{class_id}/preparation-session/questions/candidates",
             headers=teacher_headers,
+            json={"highlightIds": ["highlight-1"], "questionCount": 1},
         )
         assert response.status_code == 200
         data = response.json()["data"]

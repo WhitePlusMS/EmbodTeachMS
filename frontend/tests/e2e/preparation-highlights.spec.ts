@@ -90,4 +90,18 @@ test("教师可以连续选中多处文字并一次保存全部教学重点", as
 
   await expect(page.getByText("2 处重点")).toBeVisible();
   await expect(page.locator("mark.highlight")).toHaveCount(2);
+
+  let deleteRequestBody = "";
+  page.on("request", (request) => {
+    if (request.method() === "DELETE" && request.url().endsWith("/preparation-session/highlights")) {
+      deleteRequestBody = request.postData() ?? "";
+    }
+  });
+  await page.locator("mark.highlight").first().click();
+  const deleteButton = page.getByRole("button", { name: "删除重点" });
+  await expect(deleteButton).toBeVisible();
+  await deleteButton.click();
+  await expect(page.locator("mark.highlight")).toHaveCount(1);
+  await expect(page.getByText("1 处重点")).toBeVisible();
+  expect(deleteRequestBody).toContain("highlightId");
 });
