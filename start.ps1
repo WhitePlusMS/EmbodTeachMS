@@ -82,8 +82,6 @@ if (-not (Test-Path -LiteralPath (Join-Path $frontendDirectory "node_modules")))
     throw "前端依赖尚未安装，请先在 frontend 目录执行 npm install。"
 }
 
-$backendOutputLog = Join-Path $runtimeDirectory "backend.out.log"
-$backendErrorLog = Join-Path $runtimeDirectory "backend.err.log"
 $frontendOutputLog = Join-Path $runtimeDirectory "frontend.out.log"
 $frontendErrorLog = Join-Path $runtimeDirectory "frontend.err.log"
 
@@ -109,9 +107,7 @@ try {
             "--port", "$BackendPort"
         ) `
         -WorkingDirectory $backendDirectory `
-        -WindowStyle Hidden `
-        -RedirectStandardOutput $backendOutputLog `
-        -RedirectStandardError $backendErrorLog `
+        -NoNewWindow `
         -PassThru
 
     $env:VITE_API_BASE_URL = "http://127.0.0.1:$BackendPort"
@@ -134,17 +130,18 @@ try {
     Write-Host "  前端：http://127.0.0.1:$FrontendPort"
     Write-Host "  后端：http://127.0.0.1:$BackendPort"
     Write-Host "  接口文档：http://127.0.0.1:$BackendPort/docs"
-    Write-Host "  日志目录：$runtimeDirectory"
+    Write-Host "  后端日志：直接显示在当前 CLI"
+    Write-Host "  前端日志目录：$runtimeDirectory"
     Write-Host ""
     Write-Host "按 Ctrl+C 停止前后端。"
 
     # 由当前脚本持续监管服务；任一服务异常退出时，立即清理另一服务。
     while (-not $backendProcess.HasExited -and -not $frontendProcess.HasExited) {
-        Start-Sleep -Seconds 1
+        Start-Sleep -Milliseconds 250
     }
 
     if ($backendProcess.HasExited) {
-        throw "后端已退出（退出码 $($backendProcess.ExitCode)），请查看 $backendErrorLog。"
+        throw "后端已退出（退出码 $($backendProcess.ExitCode)），请查看当前 CLI 输出。"
     }
 
     throw "前端已退出（退出码 $($frontendProcess.ExitCode)），请查看 $frontendErrorLog。"
