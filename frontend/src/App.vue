@@ -169,6 +169,6 @@ onMounted(async () => {
         返回登录
       </button>
     </main>
-    <SiteFooter v-if="user === null || workspace === null" />
+    <SiteFooter v-if="phase !== 'auth' && (user === null || workspace === null)" />
   </div>
 </template>

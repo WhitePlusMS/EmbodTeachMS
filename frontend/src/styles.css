@@ -31,7 +31,7 @@
 }
 
 .app-shell > .auth-layout {
-  min-height: calc(100vh - var(--site-footer-height));
+  min-height: 100vh;
 }
 
 .app-shell > .workbench {
@@ -53,10 +53,33 @@
   color: #77847d;
   background: #f3f5f2;
   font-size: 12px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   position: relative;
   z-index: 1;
   text-align: center;
+}
+
+.site-footer-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.site-footer-prefix {
+  color: #8a9790;
+}
+
+.site-footer-brand {
+  color: var(--green-dark);
+  font-weight: 800;
+}
+
+.site-footer-year {
+  padding-left: 8px;
+  border-left: 1px solid #cfd9d2;
+  color: #8a9790;
+  font-variant-numeric: tabular-nums;
 }
 
 body {
@@ -100,11 +123,28 @@ button:disabled {
 .auth-intro {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 56px 7vw;
+  justify-content: flex-start;
+  padding: 52px 7vw 64px;
   color: #ffffff;
   background:
     radial-gradient(circle at 20% 15%, #3a8e6b 0, #1e6047 30%, #123b2c 100%);
+}
+
+.auth-intro-content {
+  display: flex;
+  max-width: 680px;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 2vh;
+}
+
+.auth-side {
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  background: #f5f6f2;
 }
 
 .brand-lockup {
@@ -131,11 +171,12 @@ button:disabled {
 }
 
 .auth-intro h1 {
-  max-width: 680px;
+  max-width: 640px;
   margin: 0;
-  font-size: clamp(38px, 5vw, 72px);
+  font-size: clamp(42px, 4.4vw, 64px);
   line-height: 1.04;
   letter-spacing: -0.04em;
+  text-wrap: balance;
 }
 
 .intro-copy {
@@ -160,9 +201,12 @@ button:disabled {
 }
 
 .auth-card {
-  align-self: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
   width: min(440px, calc(100% - 48px));
-  margin: auto;
+  margin: 0 auto;
   padding: 34px;
 }
 
@@ -1120,6 +1164,10 @@ select:focus {
     padding: 36px 24px 42px;
   }
 
+  .auth-intro-content {
+    padding-bottom: 0;
+  }
+
   .auth-intro h1 {
     font-size: clamp(38px, 12vw, 56px);
   }
@@ -1130,6 +1178,7 @@ select:focus {
   }
 
   .auth-card {
+    flex: 0 1 auto;
     width: min(440px, calc(100% - 36px));
     padding: 28px 0 36px;
   }

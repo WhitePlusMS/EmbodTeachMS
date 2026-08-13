@@ -7,6 +7,7 @@ import type {
   RegisterRequest,
   UserRole,
 } from "../api/client";
+import SiteFooter from "./SiteFooter.vue";
 
 const props = defineProps<{
   busy: boolean;
@@ -53,14 +54,17 @@ function submit(): void {
         <img class="brand-mark" src="/embodteachms-logo.png" alt="" aria-hidden="true" />
         <strong>EmbodTeachMS 具身课堂</strong>
       </div>
-      <p class="eyebrow">从知识理解到可靠行动</p>
-      <h1>让每一次学习<br />都有依据与反馈</h1>
-      <p class="intro-copy">
-        围绕教师发布到教学班的真实课程内容，形成学习、练习、证据与教学分析闭环。
-      </p>
+      <div class="auth-intro-content">
+        <p class="eyebrow">从知识理解到可靠行动</p>
+        <h1>让每一次学习<br />都有依据与反馈</h1>
+        <p class="intro-copy">
+          围绕教师发布到教学班的真实课程内容，形成学习、练习、证据与教学分析闭环。
+        </p>
+      </div>
     </section>
 
-    <section class="auth-card">
+    <div class="auth-side">
+      <section class="auth-card">
       <p class="eyebrow">{{ mode === "login" ? "欢迎回来" : "创建固定角色账号" }}</p>
       <h2>{{ mode === "login" ? "登录工作台" : "注册账号" }}</h2>
       <p class="muted">
@@ -155,6 +159,8 @@ function submit(): void {
       >
         {{ mode === "login" ? "注册账号" : "返回登录" }}
       </button>
-    </section>
+      </section>
+      <SiteFooter />
+    </div>
   </main>
 </template>
