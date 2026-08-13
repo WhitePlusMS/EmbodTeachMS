@@ -127,6 +127,13 @@ class HomeworkAIGrading:
                 (homework_id, class_id),
             ).fetchone()
             if homework_row is None:
+                logger.info(
+                    "homework_ai_analysis_not_found class_id=%s homework_id=%s "
+                    "learner_id=%s reason=homework_missing",
+                    class_id,
+                    homework_id,
+                    learner_id,
+                )
                 raise BusinessError(
                     status_code=404,
                     code="HOMEWORK_NOT_FOUND",
@@ -139,6 +146,13 @@ class HomeworkAIGrading:
                 (homework_id, learner_id, class_id),
             ).fetchone()
             if submission is None:
+                logger.info(
+                    "homework_ai_analysis_not_found class_id=%s homework_id=%s "
+                    "learner_id=%s reason=submission_missing",
+                    class_id,
+                    homework_id,
+                    learner_id,
+                )
                 raise BusinessError(
                     status_code=404,
                     code="SUBMISSION_NOT_FOUND",

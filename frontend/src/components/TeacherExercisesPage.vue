@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, reactive, ref } from "vue";
 import type {
   TeacherPublishedContentView,
   TeachingClassView,
+  UpdatePublishedContentRequest,
 } from "../api/client";
 import StatusPanel from "./StatusPanel.vue";
 import {
@@ -37,6 +38,8 @@ type ParsedExercise = {
   options: string[];
   correctAnswers: string[];
   knowledgePoints: string[];
+  hint: string;
+  explanation: string;
 };
 
 // 教师接口返回结构化完整题目；学习者 DTO 不包含答案与解析。
@@ -51,10 +54,89 @@ const parseExercise = (content: TeacherPublishedContentView): ParsedExercise => 
     options: question?.options ?? [],
     correctAnswers: question?.answers.map(answer => String(answer + 1)) ?? [],
     knowledgePoints: question?.knowledgePoints ?? [],
+    hint: question?.hint ?? "",
+    explanation: question?.explanation ?? "",
   };
 };
 
 const parsedExercises = computed(() => publishedExercises.value.map(parseExercise));
+
+const emit = defineEmits<{
+  updateContent: [contentId: string, request: UpdatePublishedContentRequest];
+  deleteContent: [contentId: string];
+}>();
+
+const editingExerciseId = ref<string | null>(null);
+const editError = ref("");
+const exerciseForm = reactive({
+  title: "",
+  stem: "",
+  optionsText: "",
+  answersText: "",
+  knowledgePointsText: "",
+  hint: "",
+  explanation: "",
+});
+
+function startEdit(exercise: ParsedExercise): void {
+  editingExerciseId.value = exercise.id;
+  editError.value = "";
+  exerciseForm.title = exercise.title;
+  exerciseForm.stem = exercise.stem;
+  exerciseForm.optionsText = exercise.options.join("\n");
+  exerciseForm.answersText = exercise.correctAnswers.join(",");
+  exerciseForm.knowledgePointsText = exercise.knowledgePoints.join("、");
+  exerciseForm.hint = exercise.hint;
+  exerciseForm.explanation = exercise.explanation;
+}
+
+function cancelEdit(): void {
+  editingExerciseId.value = null;
+  editError.value = "";
+}
+
+function submitEdit(): void {
+  const contentId = editingExerciseId.value;
+  if (!contentId) return;
+  const options = exerciseForm.optionsText.split("\n").map((option) => option.trim()).filter(Boolean);
+  const answerNumbers = exerciseForm.answersText
+    .split(/[,，、\s]+/)
+    .map((answer) => Number(answer.trim()))
+    .filter((answer) => Number.isInteger(answer));
+  const answers = answerNumbers.map((answer) => answer - 1);
+  const knowledgePoints = exerciseForm.knowledgePointsText
+    .split(/[，、,]+/)
+    .map((point) => point.trim())
+    .filter(Boolean);
+  if (!exerciseForm.title.trim() || !exerciseForm.stem.trim()) {
+    editError.value = "标题和题干不能为空";
+    return;
+  }
+  if (options.length < 1 || answers.length < 1 || knowledgePoints.length < 1) {
+    editError.value = "请完整填写选项、答案和知识点";
+    return;
+  }
+  if (new Set(options).size !== options.length || answers.some((answer) => answer < 0 || answer >= options.length)) {
+    editError.value = "选项不能重复，答案序号必须在选项范围内";
+    return;
+  }
+  editError.value = "";
+  emit("updateContent", contentId, {
+    title: exerciseForm.title.trim(),
+    stem: exerciseForm.stem.trim(),
+    options,
+    answers: [...new Set(answers)].sort((left, right) => left - right),
+    knowledgePoints,
+    hint: exerciseForm.hint.trim(),
+    explanation: exerciseForm.explanation.trim(),
+  });
+  editingExerciseId.value = null;
+}
+
+function requestDelete(exercise: ParsedExercise): void {
+  if (!window.confirm(`确定删除课堂练习“${exercise.title}”吗？学习者将无法继续查看或作答。`)) return;
+  emit("deleteContent", exercise.id);
+}
 
 </script>
 
@@ -81,7 +163,7 @@ const parsedExercises = computed(() => publishedExercises.value.map(parseExercis
         >
           <span class="lesson-number">{{ index + 1 }}</span>
           <div class="lesson-copy">
-            <div class="lesson-title-row"><h3>{{ exercise.title }}</h3><span class="content-type-badge">课堂练习</span></div>
+            <div class="lesson-title-row"><h3>{{ exercise.stem || exercise.title }}</h3><span class="content-type-badge">课堂练习</span></div>
             <p class="related-content">关联课程内容：{{ exercise.title }}</p>
             <div class="evidence exercise-evidence"><span>题型 · {{ formatQuestionType(exercise.questionType) }}</span><strong>发布于 {{ formatEpochSeconds(exercise.createdAt) }}</strong></div>
           </div>
@@ -95,7 +177,20 @@ const parsedExercises = computed(() => publishedExercises.value.map(parseExercis
             >
               {{ isExerciseExpanded(exercise.id) ? '收起详情' : '题目详情' }}
             </button>
+            <button class="button secondary" type="button" @click="startEdit(exercise)">编辑</button>
+            <button class="button danger" type="button" @click="requestDelete(exercise)">删除</button>
           </div>
+          <form v-if="editingExerciseId === exercise.id" class="exercise-edit-form" novalidate @submit.prevent="submitEdit">
+            <p v-if="editError" class="edit-error" role="alert">{{ editError }}</p>
+            <label>练习标题<input v-model="exerciseForm.title" type="text" maxlength="200" /></label>
+            <label>题干<textarea v-model="exerciseForm.stem" rows="3" /></label>
+            <label>选项（每行一个）<textarea v-model="exerciseForm.optionsText" rows="4" /></label>
+            <label>标准答案序号（从 1 开始，多个用逗号分隔）<input v-model="exerciseForm.answersText" type="text" /></label>
+            <label>知识点（用逗号分隔）<input v-model="exerciseForm.knowledgePointsText" type="text" /></label>
+            <label>提示<textarea v-model="exerciseForm.hint" rows="2" /></label>
+            <label>解析<textarea v-model="exerciseForm.explanation" rows="3" /></label>
+            <div class="edit-actions"><button class="button primary" type="submit">保存修改</button><button class="button secondary" type="button" @click="cancelEdit">取消</button></div>
+          </form>
           <div
             v-if="isExerciseExpanded(exercise.id)"
             :id="`exercise-detail-${exercise.id}`"
@@ -249,6 +344,7 @@ const parsedExercises = computed(() => publishedExercises.value.map(parseExercis
 .exercise-evidence { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 12px; padding: 0; border: 0; color: #687970; font-size: 12px; }
 .exercise-evidence strong { color: #687970; font-weight: 600; }
 .lesson-actions { display: flex; justify-content: flex-end; }
+.lesson-actions { flex-wrap: wrap; gap: 8px; }
 .exercise-toggle { white-space: nowrap; }
 .exercise-row .exercise-detail { grid-column: 2 / -1; width: auto; margin-top: 2px; padding: 14px 16px; border: 0; border-radius: 12px; background: #f6f8f5; }
 .exercise-detail .evidence { grid-template-columns: 110px minmax(0, 1fr); padding: 10px 0; border-bottom: 1px solid #dce3de; }
@@ -257,11 +353,17 @@ const parsedExercises = computed(() => publishedExercises.value.map(parseExercis
 .detail-label { margin: 12px 0 4px; color: #687970; font-size: 12px; font-weight: 800; }
 .exercise-detail ol { margin: 0; padding-left: 22px; color: #314d40; line-height: 1.7; }
 .empty-state { padding: 28px 0; }
+.exercise-edit-form { display: grid; grid-column: 2 / -1; gap: 10px; padding: 16px; border: 1px solid #cfe1d5; border-radius: 12px; background: #eef7f1; }
+.exercise-edit-form label { display: grid; gap: 5px; color: #314d40; font-size: 12px; font-weight: 700; }
+.exercise-edit-form input,.exercise-edit-form textarea { width: 100%; box-sizing: border-box; padding: 8px 9px; border: 1px solid #c9d9ce; border-radius: 7px; font: inherit; }
+.edit-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.edit-error { margin: 0; color: #b42318; font-size: 12px; }
 @media (max-width: 680px) {
   .published-contents { padding: 18px; }
   .lesson-row { grid-template-columns: 42px minmax(0, 1fr); }
   .lesson-actions { grid-column: 2; justify-content: flex-start; }
   .exercise-row .exercise-detail { grid-column: 1 / -1; }
+  .exercise-edit-form { grid-column: 1 / -1; }
   .exercise-detail .evidence { grid-template-columns: 1fr; gap: 4px; }
   .exercise-detail .evidence strong { text-align: left; }
 }

@@ -153,6 +153,11 @@ def test_teacher_homework_stats_are_scoped_and_deterministic(tmp_path: Path) -> 
         assert item["status"] == "published"
         assert item["totalLearners"] == 3
         assert item["submittedCount"] == 3
+        assert set(item["submittedLearnerIds"]) == {
+            learner_one_id,
+            learner_two_id,
+            pending_learner_id,
+        }
         assert item["lateCount"] == 1
         assert item["correctRate"] == 50.0
         assert item["pendingReviewCount"] == 1
@@ -196,5 +201,6 @@ def test_teacher_homework_empty_and_no_submission_states(tmp_path: Path) -> None
         )
         item = no_submission.json()["data"]["items"][0]
         assert item["submittedCount"] == 0
+        assert item["submittedLearnerIds"] == []
         assert item["dataStatus"] == "no_submissions"
         assert item["correctRate"] is None

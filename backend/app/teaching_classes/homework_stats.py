@@ -63,7 +63,7 @@ class HomeworkStats:
         ).fetchall()
         submission_rows = connection.execute(
             """
-            SELECT hs.id, hs.grading_json, hs.is_late_submission
+            SELECT hs.id, hs.learner_id, hs.grading_json, hs.is_late_submission
             FROM homework_submissions hs
             JOIN class_memberships cm
               ON cm.class_id = hs.class_id
@@ -132,6 +132,7 @@ class HomeworkStats:
             )
 
         submitted_count = len(submission_rows)
+        submitted_learner_ids = [str(row["learner_id"]) for row in submission_rows]
         pending_review_count = len(pending_submission_ids)
         if not submitted_count:
             data_status = "no_submissions"
@@ -143,6 +144,7 @@ class HomeworkStats:
             homework=homework,
             total_learners=total_learners,
             submitted_count=submitted_count,
+            submitted_learner_ids=submitted_learner_ids,
             late_count=sum(1 for row in submission_rows if row["is_late_submission"]),
             correct_rate=(
                 round(overall_correct / overall_attempts * 100, 2)

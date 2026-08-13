@@ -26,7 +26,9 @@ from app.teaching_classes.models import (
     PublishedContentDetailView,
     PublishedContentListView,
     TeacherPublishedContentListView,
+    TeacherPublishedContentView,
     UpdateCourseOverviewRequest,
+    UpdatePublishedContentRequest,
 )
 
 router = APIRouter(prefix="/api/teaching-classes", tags=["teaching-classes"])
@@ -133,6 +135,39 @@ def list_published_contents(
     return success_response(request, code="PUBLISHED_CONTENTS_LISTED", message="已发布内容获取成功", data=contents)
 
 
+@router.put(
+    "/{class_id}/published-contents/{content_id}",
+    response_model=ApiResponse[TeacherPublishedContentView],
+    responses={400: documented_error("课程内容字段或类型不合法"), 403: documented_error("只有教师可以修改已发布内容"), 404: documented_error("课程内容不存在"), 409: documented_error("题目结构不完整")},
+)
+def update_published_content(
+    request: Request,
+    class_id: str,
+    content_id: str,
+    body: UpdatePublishedContentRequest,
+    teacher: TeacherDep,
+    content_query: ContentQueryDep,
+) -> ApiResponse[TeacherPublishedContentView]:
+    content = content_query.update_published_content(class_id, content_id, body, teacher)
+    return success_response(request, code="PUBLISHED_CONTENT_UPDATED", message="课程内容修改成功", data=content)
+
+
+@router.delete(
+    "/{class_id}/published-contents/{content_id}",
+    response_model=ApiResponse[None],
+    responses={400: documented_error("当前课程内容类型不支持删除"), 403: documented_error("只有教师可以删除已发布内容"), 404: documented_error("课程内容不存在")},
+)
+def delete_published_content(
+    request: Request,
+    class_id: str,
+    content_id: str,
+    teacher: TeacherDep,
+    content_query: ContentQueryDep,
+) -> ApiResponse[None]:
+    content_query.delete_published_content(class_id, content_id, teacher)
+    return success_response(request, code="PUBLISHED_CONTENT_DELETED", message="课程内容删除成功", data=None)
+
+
 @router.get(
     "/{class_id}/published-contents/learner",
     response_model=ApiResponse[PublishedContentListView],
@@ -170,7 +205,7 @@ def get_published_content_detail_for_learner(
     "/{class_id}/contents/{content_id}/complete",
     response_model=ApiResponse[CourseContentCompletionView],
     status_code=201,
-    responses={403: documented_error("只有班级正式成员可以标记内容完成"), 404: documented_error("课程内容不存在或未发布")},
+    responses={400: documented_error("作业和课堂练习必须提交后自动完成"), 403: documented_error("只有班级正式成员可以标记内容完成"), 404: documented_error("课程内容不存在或未发布")},
 )
 def mark_content_complete(
     request: Request,

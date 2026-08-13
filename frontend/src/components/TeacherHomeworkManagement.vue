@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from "vue";
+import { reactive, ref, watch } from "vue";
 
 import {
   ApiError,
@@ -7,6 +7,7 @@ import {
 import type {
   TeacherHomeworkListView,
   TeacherHomeworkStats,
+  UpdatePublishedContentRequest,
 } from "../api/client";
 import type { SessionClient } from "../api/session";
 import AsyncViewState from "./AsyncViewState.vue";
@@ -17,6 +18,7 @@ import { useAsyncResource } from "../modules/async-resource";
 const props = defineProps<{
   session: SessionClient;
   classId: string;
+  refreshToken: number;
 }>();
 
 const homeworkResource = useAsyncResource<TeacherHomeworkListView>((error) => {
@@ -27,6 +29,13 @@ const homeworkResource = useAsyncResource<TeacherHomeworkListView>((error) => {
 const homeworkList = homeworkResource.data;
 const loading = homeworkResource.loading;
 const errorMessage = homeworkResource.error;
+const editingHomeworkId = ref<string | null>(null);
+const editError = ref("");
+const homeworkForm = reactive({
+  title: "",
+  description: "",
+  dueAt: "",
+});
 const {
   isExpanded: isHomeworkExpanded,
   toggle: toggleHomework,
@@ -49,10 +58,68 @@ const dataStatusText = (status: TeacherHomeworkStats["dataStatus"]): string => {
   }
 };
 
+function toDateTimeLocal(timestamp: number | null | undefined): string {
+  if (!timestamp) return "";
+  const date = new Date(timestamp * 1000);
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
+}
+
+function startEdit(item: NonNullable<TeacherHomeworkListView["items"]>[number]): void {
+  editingHomeworkId.value = item.homework.id;
+  editError.value = "";
+  homeworkForm.title = item.homework.title;
+  homeworkForm.description = item.homework.description ?? "";
+  homeworkForm.dueAt = toDateTimeLocal(item.homework.dueAt);
+}
+
+function cancelEdit(): void {
+  editingHomeworkId.value = null;
+  editError.value = "";
+}
+
+function submitEdit(): void {
+  const contentId = editingHomeworkId.value;
+  if (!contentId) return;
+  if (!homeworkForm.title.trim()) {
+    editError.value = "作业标题不能为空";
+    return;
+  }
+  if (!homeworkForm.dueAt) {
+    editError.value = "请选择截止时间";
+    return;
+  }
+  const dueAt = new Date(homeworkForm.dueAt);
+  if (dueAt <= new Date()) {
+    editError.value = "作业截止时间必须大于当前时间";
+    return;
+  }
+  editError.value = "";
+  const request: UpdatePublishedContentRequest = {
+    title: homeworkForm.title.trim(),
+    description: homeworkForm.description.trim(),
+    dueAt: Math.floor(dueAt.getTime() / 1000),
+  };
+  emit("updateContent", contentId, request);
+  editingHomeworkId.value = null;
+}
+
+function requestDelete(item: NonNullable<TeacherHomeworkListView["items"]>[number]): void {
+  if (!window.confirm(`确定删除作业“${item.homework.title}”吗？作业提交和关联题目也会被删除。`)) return;
+  emit("deleteContent", item.homework.id);
+}
+
+const emit = defineEmits<{
+  updateContent: [contentId: string, request: UpdatePublishedContentRequest];
+  deleteContent: [contentId: string];
+}>();
+
 watch(
-  () => [props.session, props.classId],
+  () => [props.session, props.classId, props.refreshToken],
   () => {
     resetExpandedHomework();
+    editingHomeworkId.value = null;
+    editError.value = "";
     void loadHomework();
   },
   { immediate: true },
@@ -96,8 +163,20 @@ watch(
             <h2>{{ item.homework.title }}</h2>
             <p class="homework-description">{{ item.homework.description || "暂无描述" }}</p>
           </div>
-          <span class="homework-due tag">截止：{{ formatEpochSeconds(item.homework.dueAt, "暂无时间") }}</span>
+          <div class="homework-header-actions">
+            <span class="homework-due tag">截止：{{ formatEpochSeconds(item.homework.dueAt, "暂无时间") }}</span>
+            <button class="button secondary" type="button" @click="startEdit(item)">编辑</button>
+            <button class="button danger" type="button" @click="requestDelete(item)">删除</button>
+          </div>
         </header>
+
+        <form v-if="editingHomeworkId === item.homework.id" class="homework-edit-form" novalidate @submit.prevent="submitEdit">
+          <p v-if="editError" class="edit-error" role="alert">{{ editError }}</p>
+          <label>作业标题<input v-model="homeworkForm.title" type="text" maxlength="200" /></label>
+          <label>作业描述<textarea v-model="homeworkForm.description" rows="3" maxlength="1000" /></label>
+          <label>截止时间<input v-model="homeworkForm.dueAt" type="datetime-local" /></label>
+          <div class="edit-actions"><button class="button primary" type="submit">保存修改</button><button class="button secondary" type="button" @click="cancelEdit">取消</button></div>
+        </form>
 
         <dl class="homework-stat-grid">
           <div><dt>提交人数</dt><dd>{{ item.submittedCount }} / {{ item.totalLearners }}</dd></div>
@@ -195,6 +274,13 @@ watch(
   white-space: nowrap;
 }
 
+.homework-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.homework-edit-form { display: grid; grid-column: 2 / -1; gap: 10px; padding: 16px; border: 1px solid #cfe1d5; border-radius: 12px; background: #eef7f1; }
+.homework-edit-form label { display: grid; gap: 5px; color: #314d40; font-size: 12px; font-weight: 700; }
+.homework-edit-form input,.homework-edit-form textarea { width: 100%; box-sizing: border-box; padding: 8px 9px; border: 1px solid #c9d9ce; border-radius: 7px; font: inherit; }
+.edit-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.edit-error { margin: 0; color: #b42318; font-size: 12px; }
+
 .homework-stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -252,6 +338,8 @@ watch(
     flex-direction: column;
   }
 
+  .homework-header-actions { justify-content: flex-start; }
+
   .homework-stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -295,5 +383,6 @@ watch(
   .homework-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hw-row > .button { grid-row: auto; justify-self: start; }
   .homework-question-stats { grid-column: 1 / -1; }
+  .homework-edit-form { grid-column: 1 / -1; }
 }
 </style>
