@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { ArrowLeft, ArrowRight } from "@lucide/vue";
 import { ref, onMounted, computed } from "vue";
 import { ApiError } from "../api/client";
-import type { PublishedContentDetailView, ClassroomPracticeContentDetailView, BaselinePracticeDetail, HomeworkSubmissionDetailView } from "../api/client";
+import type { PublishedContentDetailView, ClassroomPracticeContentDetailView, BaselinePracticeDetail, HomeworkSubmissionDetailView, HomeworkSubmissionView } from "../api/client";
 import type { SessionClient } from "../api/session";
 import AsyncViewState from "./AsyncViewState.vue";
 import { formatContentType } from "../modules/display-rules";
@@ -15,12 +16,14 @@ const props = defineProps<{
   classId: string;
   contentId: string;
   session: SessionClient;
+  navigationContentIds?: string[];
 }>();
 
 // Emits定义
 const emit = defineEmits<{
   backToCourse: [];
   contentCompleted: [classId: string, contentId: string];
+  navigateContent: [contentId: string];
 }>();
 
 // 本地状态
@@ -49,9 +52,27 @@ const markCompleteAction = useAsyncAction<boolean>(() => "标记完成失败，�
 const markingComplete = markCompleteAction.loading;
 const markedComplete = ref(false);
 const activePanel = ref<ReaderPanel>('content');
+const xiaodOpen = ref(false);
 const practiceDetail = practiceResource.data;
 const baselinePracticeDetail = baselineResource.data;
 const homeworkSubmissionDetail = homeworkResource.data;
+
+const navigationIndex = computed(() => {
+  const contentIds = props.navigationContentIds ?? [];
+  const index = contentIds.indexOf(props.contentId);
+  return index >= 0 ? index : 0;
+});
+
+const hasSectionNavigation = computed(() => (props.navigationContentIds?.length ?? 0) > 0);
+
+const navigateSection = (offset: number): void => {
+  const contentIds = props.navigationContentIds ?? [];
+  const nextIndex = navigationIndex.value + offset;
+  const nextContentId = contentIds[nextIndex];
+  if (nextContentId) {
+    emit("navigateContent", nextContentId);
+  }
+};
 
 function handleBaselineRefreshed(detail: BaselinePracticeDetail): void {
   baselineResource.data.value = detail;
@@ -77,15 +98,18 @@ const handleMarkComplete = async (): Promise<void> => {
     error.value = markCompleteAction.error.value;
   }
 };
-type ReaderPanel = 'toc' | 'content' | 'assistant';
+type ReaderPanel = 'content' | 'assistant';
 
 const readerPanels: ReadonlyArray<{ id: ReaderPanel; label: string }> = [
-  { id: 'toc', label: '目录' },
   { id: 'content', label: '正文' },
   { id: 'assistant', label: '小D' },
 ];
 
 function selectPanel(panel: ReaderPanel): void {
+  if (panel === "assistant") {
+    xiaodOpen.value = true;
+    return;
+  }
   activePanel.value = panel;
 }
 
@@ -146,17 +170,24 @@ const loadHomeworkSubmissionDetail = async (): Promise<void> => {
 };
 
 // 处理课堂练习答案提交事件
-const handleAnswerSubmitted = () => {
-  // 答案提交后，重新加载课堂练习详情以更新状态
+const handleAnswerSubmitted = (): void => {
   if (contentDetail.value?.contentType === 'question') {
+    // 后端在保存答案的同一事务中写入完成记录；这里同步更新阅读器状态，
+    // 让进度徽标和课程列表不必等待整页重新加载。
+    markedComplete.value = true;
+    emit("contentCompleted", props.classId, props.contentId);
     void loadPracticeDetail();
   }
 };
 
 // 处理作业提交事件
-const handleHomeworkSubmitted = () => {
+const handleHomeworkSubmitted = (submission: HomeworkSubmissionView) => {
   // 作业提交后，重新加载作业提交详情以更新状态
   if (contentDetail.value?.contentType === 'homework') {
+    if (submission.status === "submitted") {
+      markedComplete.value = true;
+      emit("contentCompleted", props.classId, props.contentId);
+    }
     void loadHomeworkSubmissionDetail();
   }
 };
@@ -198,26 +229,31 @@ onMounted(() => {
 
 <template>
   <div class="content-reader">
-    <!-- 移动端顶部导航（桌面端由 CSS 隐藏） -->
-    <header class="mobile-header">
-      <button class="back-button" type="button" @click="emit('backToCourse')">
-        <span aria-hidden="true">←</span>
-        返回课程
+    <!-- 阅读器统一返回入口：所有课件、课堂练习和作业都返回进入前的课程页面。 -->
+    <header class="reader-header">
+      <button
+        class="reader-back-button"
+        type="button"
+        aria-label="返回课程页面"
+        title="返回课程页面"
+        @click="emit('backToCourse')"
+      >
+        <ArrowLeft class="button-icon" :size="16" :stroke-width="2" aria-hidden="true" />
       </button>
       <div class="mobile-nav">
         <button
           v-for="panel in readerPanels"
           :key="panel.id"
           class="nav-button"
-          :class="{ active: activePanel === panel.id }"
+          :class="{ active: panel.id === 'assistant' ? xiaodOpen : activePanel === panel.id }"
           type="button"
-          :aria-current="activePanel === panel.id ? 'page' : undefined"
+          :aria-current="(panel.id === 'assistant' ? xiaodOpen : activePanel === panel.id) ? 'page' : undefined"
           @click="selectPanel(panel.id)"
         >
           {{ panel.label }}
         </button>
       </div>
-    </header>
+      </header>
 
     <AsyncViewState
       :loading="loading"
@@ -234,27 +270,32 @@ onMounted(() => {
         <button class="button secondary" type="button" @click="emit('backToCourse')">返回课程</button>
       </template>
 
-      <!-- 内容显示：桌面端三栏、移动端单面板共用同一棵有状态内容树。 -->
+      <!-- 内容显示：正文占据主区域，小D独立为可折叠抽屉。 -->
       <div v-if="contentDetail" class="reader-content">
-      <div class="lesson-workspace desktop-layout" :data-active-panel="activePanel">
-        <!-- 目录侧边栏 -->
-        <aside class="card outline toc-sidebar" :class="{ 'mobile-panel-active': activePanel === 'toc' }">
-          <p class="eyebrow">课程目录</p>
-          <h2>本节目录</h2>
-          <div class="toc-content">
-            <div class="toc-item active">
-              <span class="toc-index">1.2</span>
-              <span class="toc-title">
-                {{ contentDetail.title }}
-                <small>{{ contentTypeText }}</small>
-              </span>
-            </div>
-            <!-- 这里可以添加更多目录项 -->
-          </div>
-        </aside>
-
+      <nav v-if="hasSectionNavigation" class="section-navigation" aria-label="课件章节导航">
+        <button
+          class="button secondary"
+          type="button"
+          :disabled="navigationIndex <= 0"
+          @click="navigateSection(-1)"
+        >
+          <ArrowLeft class="button-icon" :size="16" :stroke-width="2" aria-hidden="true" />
+          上一节
+        </button>
+        <span>第 {{ navigationIndex + 1 }} / {{ props.navigationContentIds?.length ?? 0 }} 节</span>
+        <button
+          class="button secondary"
+          type="button"
+          :disabled="navigationIndex >= (props.navigationContentIds?.length ?? 1) - 1"
+          @click="navigateSection(1)"
+        >
+          下一节
+          <ArrowRight class="button-icon" :size="16" :stroke-width="2" aria-hidden="true" />
+        </button>
+      </nav>
+      <div class="lesson-workspace desktop-layout">
         <!-- 正文区域 -->
-        <main class="card lesson-document content-main" :class="{ 'mobile-panel-active': activePanel === 'content' }">
+        <main class="card lesson-document content-main">
           <ReaderBody
             :class-id="props.classId"
             :content-id="props.contentId"
@@ -273,17 +314,15 @@ onMounted(() => {
           />
         </main>
 
-        <!-- 小D助手侧边栏 -->
-        <aside class="card chat-panel assistant-sidebar" :class="{ 'mobile-panel-active': activePanel === 'assistant' }">
-          <XiaodAssistantPanel
-            :class-id="props.classId"
-            :content-id="props.contentId"
-            :content-title="contentDetail.title"
-            :content-type="contentTypeText"
-            :session="props.session"
-          />
-        </aside>
       </div>
+      <XiaodAssistantPanel
+        v-model:open="xiaodOpen"
+        :class-id="props.classId"
+        :content-id="props.contentId"
+        :content-title="contentDetail.title"
+        :content-type="contentTypeText"
+        :session="props.session"
+      />
       </div>
     </AsyncViewState>
   </div>
@@ -295,30 +334,43 @@ onMounted(() => {
   background: #f3f5f2;
 }
 
-/* 移动端头部（桌面端隐藏） */
-.mobile-header {
-  display: none;
-  position: sticky;
-  top: 0;
-  background: #fbfcfb;
-  border-bottom: 1px solid #dce3de;
-  padding: 16px 20px;
-  z-index: 100;
-}
-
-.back-button {
+.reader-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
+  gap: 12px;
+  padding: 20px 0 0;
+}
+
+.reader-back-button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #dce3de;
+  border-radius: 12px;
   color: #146b4a;
-  font-weight: 800;
-  margin-bottom: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.reader-back-button:hover {
+  border-color: #abd1ba;
+  color: #0f563b;
+  background: #f2f8f4;
+}
+
+.reader-back-button:focus-visible {
+  outline: 3px solid rgb(224 165 63 / 55%);
+  outline-offset: 2px;
 }
 
 .mobile-nav {
-  display: flex;
+  display: none;
+  flex: 1;
+  align-items: center;
   gap: 8px;
 }
 
@@ -349,88 +401,48 @@ onMounted(() => {
   margin: 8px;
 }
 
-/* 桌面端三栏布局 */
+/* 正文主区域；小D通过自身组件固定在右侧，不挤压正文。 */
 .reader-content {
   padding: 26px 0 0;
 }
 
+.section-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border: 1px solid #dce3de;
+  border-radius: 13px;
+  color: #416055;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.section-navigation .button {
+  min-height: 36px;
+  padding: 7px 12px;
+}
+
+.section-navigation .button:disabled {
+  color: #9aa9a3;
+  background: #f1f4f2;
+  cursor: not-allowed;
+}
+
 .lesson-workspace {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) minmax(300px, .72fr);
-  gap: 18px;
+  display: block;
   min-height: calc(100vh - 130px);
 }
 
-.outline,
-.lesson-document,
-.chat-panel {
+.lesson-document {
   min-width: 0;
   padding: 20px;
 }
 
-.outline {
-  align-self: start;
-  position: sticky;
-  top: 20px;
-}
-
-.outline h2 {
-  margin: 0 0 16px;
-  font-size: 20px;
-  color: #17221d;
-}
-
-
-.toc-item {
-  align-items: center;
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 10px;
-  padding: 11px 10px;
-  border-radius: 10px;
-}
-
-.toc-item.active {
-  background: #def1e7;
-  color: #146b4a;
-}
-
-.toc-index {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border-radius: 9px;
-  background: rgb(20 107 74 / 12%);
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.toc-title {
-  min-width: 0;
-  font-weight: 800;
-  line-height: 1.45;
-}
-
-.toc-title small {
-  display: block;
-  margin-top: 3px;
-  color: #66736c;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.toc-item.active .toc-title small {
-  color: #4e8068;
-}
-
 .content-main {
-  overflow: hidden;
-}
-
-.assistant-sidebar {
-  min-height: calc(100vh - 130px);
-  padding: 0;
   overflow: hidden;
 }
 
@@ -454,15 +466,25 @@ onMounted(() => {
 }
 
 /* 响应式设计：布局切换仅由 CSS media query 负责 */
-@media (max-width: 1200px) {
-  .desktop-layout {
-    grid-template-columns: 200px minmax(0, 1fr) minmax(280px, .72fr);
-  }
-}
-
 @media (max-width: 1024px) {
-  .mobile-header {
+  .reader-header {
     display: block;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 16px 20px;
+    border-bottom: 1px solid #dce3de;
+    background: #fbfcfb;
+  }
+
+  .reader-back-button {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 12px;
+  }
+
+  .mobile-nav {
+    display: flex;
   }
 
   .desktop-layout {
@@ -471,26 +493,10 @@ onMounted(() => {
     padding-top: 20px;
   }
 
-  .desktop-layout > .outline,
-  .desktop-layout > .content-main,
-  .desktop-layout > .assistant-sidebar {
-    display: none;
+  .section-navigation {
+    margin: 20px 0 0;
   }
 
-  .desktop-layout > .mobile-panel-active {
-    display: block;
-    position: static;
-    min-height: auto;
-    margin-bottom: 20px;
-  }
-
-  .desktop-layout > .mobile-panel-active.content-main {
-    padding: 20px;
-  }
-
-  .desktop-layout > .mobile-panel-active.assistant-sidebar {
-    min-height: 520px;
-  }
 }
 
 

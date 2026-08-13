@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import type {
   DiscoverableClassView,
   TeachingClassView,
@@ -22,6 +22,7 @@ const props = defineProps<{
   learnerJoinRequests: JoinRequestView[];
   session: SessionClient;
   activeNav: string;
+  navigationRevision: number;
 }>();
 
 // Emits定义
@@ -36,20 +37,31 @@ const emit = defineEmits<{
 // 课程内容阅读器状态
 const viewingContent = ref(false);
 const selectedContentId = ref<string | null>(null);
+const readerContentIds = ref<string[]>([]);
+
+const closeContentReader = (): void => {
+  viewingContent.value = false;
+  selectedContentId.value = null;
+  readerContentIds.value = [];
+};
+
+// 侧栏导航和班级切换都必须退出阅读器，避免阅读器分支继续遮住目标页面。
+watch(() => props.navigationRevision, closeContentReader);
+watch(() => props.selectedClass?.id, closeContentReader);
 
 // 内容完成令牌：递增后由当前活跃页面各自刷新数据
 const contentRefreshToken = ref(0);
 
 // 打开课程内容阅读器
-const openContentReader = (contentId: string) => {
+const openContentReader = (contentId: string, navigationContentIds?: string[]) => {
   viewingContent.value = true;
   selectedContentId.value = contentId;
+  readerContentIds.value = navigationContentIds ?? [];
 };
 
 // 关闭课程内容阅读器，返回课程页面
 const backToCourse = () => {
-  viewingContent.value = false;
-  selectedContentId.value = null;
+  closeContentReader();
 };
 
 // 处理内容完成事件：通知当前页面刷新
@@ -63,11 +75,14 @@ const handleContentCompleted = () => {
   <!-- 课程内容阅读器 -->
   <ContentReader
     v-if="viewingContent && selectedContentId && selectedClass"
+    :key="`${selectedClass.id}:${selectedContentId}`"
     :class-id="selectedClass.id"
     :content-id="selectedContentId"
+    :navigation-content-ids="readerContentIds"
     :session="session"
     @back-to-course="backToCourse"
     @content-completed="handleContentCompleted"
+    @navigate-content="(contentId) => openContentReader(contentId, readerContentIds)"
   />
 
   <!-- 常规学习者工作台 -->

@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { CircleCheckBig } from "@lucide/vue";
 import { computed } from "vue";
-import type { PublishedContentDetailView, ClassroomPracticeContentDetailView, BaselinePracticeDetail, HomeworkSubmissionDetailView } from "../api/client";
+import type { PublishedContentDetailView, ClassroomPracticeContentDetailView, BaselinePracticeDetail, HomeworkSubmissionDetailView, HomeworkSubmissionView } from "../api/client";
 import type { SessionClient } from "../api/session";
 import ClassroomPracticePanel from "./ClassroomPracticePanel.vue";
 import BaselinePracticePanel from "./BaselinePracticePanel.vue";
 import HomeworkSubmissionPanel from "./HomeworkSubmissionPanel.vue";
-import { formatDate } from "../modules/display-rules";
+import { formatDate, formatDateTime } from "../modules/display-rules";
 
 // 阅读器正文：课程正文、完成标记、作业信息与练习面板的唯一实现。
 // 桌面三栏与移动单列只是布局壳差异（见 ContentReader.vue），均复用本组件。
@@ -25,7 +26,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   markComplete: [];
   answerSubmitted: [];
-  homeworkSubmitted: [];
+  homeworkSubmitted: [result: HomeworkSubmissionView];
   baselineRefreshed: [detail: BaselinePracticeDetail];
 }>();
 
@@ -104,8 +105,8 @@ const contentSegments = computed<ContentSegment[]>(() => {
       </div>
     </article>
 
-    <!-- 完成按钮 -->
-    <div class="lesson-actions completion-section">
+    <!-- 普通课件允许手动标记；课堂练习和作业均在正式提交后自动完成。 -->
+    <div v-if="content.contentType !== 'homework' && content.contentType !== 'question'" class="lesson-actions completion-section">
       <button
         v-if="!markedComplete"
         type="button"
@@ -116,15 +117,26 @@ const contentSegments = computed<ContentSegment[]>(() => {
         {{ markingComplete ? '标记中...' : '标记完成' }}
       </button>
       <div v-else class="completion-status">
-        <span class="completed-badge">✓ 已完成</span>
+        <span class="completed-badge"><CircleCheckBig class="completion-icon" :size="18" :stroke-width="2" aria-hidden="true" /> 已完成</span>
       </div>
+    </div>
+    <div v-else-if="content.contentType === 'question' && markedComplete" class="question-completion-section">
+      <div class="completion-status">
+        <span class="completed-badge"><CircleCheckBig class="completion-icon" :size="18" :stroke-width="2" aria-hidden="true" /> 课堂练习已完成</span>
+      </div>
+    </div>
+    <div v-else-if="content.contentType === 'homework'" class="homework-completion-section">
+      <div v-if="markedComplete" class="completion-status">
+        <span class="completed-badge"><CircleCheckBig class="completion-icon" :size="18" :stroke-width="2" aria-hidden="true" /> 作业已完成</span>
+      </div>
+      <p v-else class="homework-completion-hint">正式提交作业后将自动标记为已完成。</p>
     </div>
 
     <!-- 作业特有信息 -->
     <footer v-if="content.contentType === 'homework'" class="homework-info">
       <div v-if="content.dueAt" class="due-date">
         <strong>截止时间：</strong>
-        {{ formatDate(content.dueAt) }}
+        {{ formatDateTime(content.dueAt) }}
       </div>
       <div v-if="content.description" class="homework-description">
         <strong>作业描述：</strong>
@@ -160,7 +172,7 @@ const contentSegments = computed<ContentSegment[]>(() => {
         :session="session"
         :content="content"
         :submission-detail="homeworkSubmissionDetail"
-        @homework-submitted="emit('homeworkSubmitted')"
+        @homework-submitted="emit('homeworkSubmitted', $event)"
       />
     </div>
   </div>
@@ -263,6 +275,24 @@ const contentSegments = computed<ContentSegment[]>(() => {
   padding-top: 18px;
   border-top: 1px solid #dce3de;
   text-align: left;
+}
+
+.homework-completion-section {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid #dce3de;
+}
+
+.question-completion-section {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid #dce3de;
+}
+
+.homework-completion-hint {
+  margin: 0;
+  color: #687970;
+  font-size: 13px;
 }
 
 .complete-button {
