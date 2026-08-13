@@ -80,6 +80,24 @@ class UpdateJoinPolicyRequest(BaseModel):
     join_policy: JoinPolicy
 
 
+class RenameTeachingClassRequest(BaseModel):
+    """教师重命名教学班请求。"""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    name: str = Field(min_length=1, max_length=80)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("班级名称不能为空或纯空白")
+        return stripped
+
+
 class TeachingClassView(BaseModel):
     """教学班视图"""
 
@@ -540,6 +558,8 @@ class QuestionView(BaseModel):
     explanation: str
     created_at: int
     updated_at: int
+    published_classroom: bool = False
+    published_homework: bool = False
 
 
 class QuestionListView(BaseModel):
@@ -569,6 +589,23 @@ class CandidateQuestionGenerationView(BaseModel):
     status: Literal["success", "degraded"]
     source: Literal["integrated", "demo", "unconfigured", "degraded"]
     message: str = Field(min_length=1)
+
+
+class CandidateQuestionGenerationRequest(BaseModel):
+    """根据选中的教学重点生成指定数量的单选候选题。"""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    highlight_ids: list[str] = Field(min_length=1, max_length=50)
+    question_count: int = Field(ge=1, le=10)
+
+    @field_validator("highlight_ids")
+    @classmethod
+    def validate_highlight_ids_unique(cls, highlight_ids: list[str]) -> list[str]:
+        """避免同一重点重复占用模型上下文。"""
+        if len(highlight_ids) != len(set(highlight_ids)):
+            raise ValueError("教学重点不能重复选择")
+        return highlight_ids
 
 
 class QuestionWriteRequestBase(BaseModel):
@@ -705,6 +742,8 @@ class PublishedContentView(BaseModel):
     content: str
     created_at: int
     updated_at: int
+    # 学习者内容列表中的完成状态；教师内容列表不依赖此字段，默认保持未完成。
+    completed: bool = False
     # 作业特有字段
     due_at: int | None = None
     description: str | None = None
@@ -744,6 +783,33 @@ class TeacherPublishedContentListView(BaseModel):
     )
 
     items: list[TeacherPublishedContentView]
+
+
+class UpdatePublishedContentRequest(BaseModel):
+    """教师修改已发布课堂练习或作业请求。"""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    title: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+    due_at: int | None = Field(default=None, description="作业截止时间（Unix时间戳）")
+    stem: str | None = Field(default=None, min_length=1)
+    options: list[str] | None = Field(default=None, min_length=1)
+    answers: list[int] | None = Field(default=None, min_length=1)
+    knowledge_points: list[str] | None = Field(default=None, min_length=1)
+    hint: str | None = None
+    explanation: str | None = None
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def normalize_title(cls, value: object) -> object:
+        """清理标题空白。"""
+        if not isinstance(value, str):
+            return value
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("标题不能为空或纯空白")
+        return stripped
 
 
 class PublishedContentDetailView(BaseModel):
@@ -806,6 +872,33 @@ class PublishHomeworkRequest(BaseModel):
         if not stripped:
             raise ValueError("标题不能为空或纯空白")
         return stripped
+
+
+class PublishQuestionRequest(BaseModel):
+    """逐题发布请求。"""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    mode: Literal["classroom", "homework"]
+    title: str = Field(default="", max_length=200)
+    due_at: int | None = Field(default=None, description="作业截止时间（Unix时间戳）")
+    description: str = Field(default="", max_length=1000)
+
+
+class QuestionPublicationView(BaseModel):
+    """逐题发布结果。"""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        serialize_by_alias=True,
+    )
+
+    question_id: str
+    content_id: str
+    mode: Literal["classroom", "homework"]
+    homework_id: str | None = None
+    created_at: int
 
 
 class PublishHomeworkResponse(BaseModel):
@@ -878,7 +971,7 @@ class KnowledgePointMasteryView(BaseModel):
     level_change: int = Field(description="级别变化：-1=下降，0=不变，1=上升")
     latest_evidence: dict[str, str | int] | None = Field(
         default=None,
-        description="最近证据详情，包含questionId、resultType、createdAt"
+        description="最近证据详情，包含questionId、questionTitle、resultType、createdAt"
     )
 
 
@@ -1179,6 +1272,9 @@ class TeacherHomeworkStatsView(BaseModel):
     status: Literal["published"] = Field(default="published", description="作业发布状态")
     total_learners: int = Field(default=0, description="当前班正式成员数")
     submitted_count: int = Field(default=0, description="已提交人数")
+    submitted_learner_ids: list[str] = Field(
+        default_factory=list, description="已提交该作业的学习者 ID"
+    )
     late_count: int = Field(default=0, description="迟交人数")
     correct_rate: float | None = Field(default=None, description="作业整体正确率（0-100）；无数据时为空")
     pending_review_count: int = Field(default=0, description="缺少确定性判分结果的提交数")

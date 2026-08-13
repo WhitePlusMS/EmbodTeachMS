@@ -8,6 +8,7 @@ import {
   type BaselinePracticeResult,
   type BaselinePracticeSubmitRequest,
   type CandidateQuestionGenerationView,
+  type CandidateQuestionGenerationRequest,
   type ClassAggregateStatsView,
   type ClassroomPracticeAnswerBody,
   type ClassroomPracticeContentDetailView,
@@ -61,6 +62,8 @@ import {
   type PublishedContentView,
   type PublishHomeworkRequest,
   type PublishHomeworkResponse,
+  type PublishQuestionRequest,
+  type QuestionPublicationView,
   type QuestionListView,
   type QuestionView,
   type ResolveJoinRequestResponse,
@@ -75,6 +78,7 @@ import {
   type TeacherDashboardView,
   type TeacherHomeworkListView,
   type TeacherPublishedContentView,
+  type UpdatePublishedContentRequest,
   type TeachingClassView,
   type UpdateCourseOverviewRequest,
   type UpdateJoinPolicyRequest,
@@ -146,6 +150,19 @@ export function createSessionClient(
       request: CreateTeachingClassRequest,
     ): Promise<TeachingClassView> {
       return execute(await http.POST("/api/teaching-classes", { body: request }));
+    },
+
+    async renameTeachingClass(classId: string, name: string): Promise<TeachingClassView> {
+      return execute(await http.PATCH("/api/teaching-classes/{class_id}/name", {
+        params: { path: { class_id: classId } },
+        body: { name },
+      }));
+    },
+
+    async deleteTeachingClass(classId: string): Promise<void> {
+      await executeVoid(await http.DELETE("/api/teaching-classes/{class_id}" , {
+        params: { path: { class_id: classId } },
+      }));
     },
 
     async getTeachingClass(classId: string): Promise<TeachingClassView> {
@@ -501,6 +518,23 @@ export function createSessionClient(
       return view.items;
     },
 
+    async updatePublishedContent(
+      classId: string,
+      contentId: string,
+      request: UpdatePublishedContentRequest,
+    ): Promise<TeacherPublishedContentView> {
+      return execute(await http.PUT("/api/teaching-classes/{class_id}/published-contents/{content_id}", {
+        params: { path: { class_id: classId, content_id: contentId } },
+        body: request,
+      }));
+    },
+
+    async deletePublishedContent(classId: string, contentId: string): Promise<void> {
+      await executeVoid(await http.DELETE("/api/teaching-classes/{class_id}/published-contents/{content_id}", {
+        params: { path: { class_id: classId, content_id: contentId } },
+      }));
+    },
+
     async listPublishedContentsForLearner(classId: string): Promise<PublishedContentView[]> {
       const view = await execute(await http.GET("/api/teaching-classes/{class_id}/published-contents/learner", {
         params: { path: { class_id: classId } },
@@ -523,6 +557,17 @@ export function createSessionClient(
     ): Promise<PublishHomeworkResponse> {
       return execute(await http.POST("/api/teaching-classes/{class_id}/preparation-session/publish-homework", {
         params: { path: { class_id: classId } },
+        body: request,
+      }));
+    },
+
+    async publishPreparationQuestion(
+      classId: string,
+      questionId: string,
+      request: PublishQuestionRequest,
+    ): Promise<QuestionPublicationView> {
+      return execute(await http.POST("/api/teaching-classes/{class_id}/preparation-session/questions/{question_id}/publish", {
+        params: { path: { class_id: classId, question_id: questionId } },
         body: request,
       }));
     },
@@ -675,9 +720,11 @@ export function createSessionClient(
 
     async generatePreparationSessionCandidateQuestions(
       classId: string,
+      body: CandidateQuestionGenerationRequest,
     ): Promise<CandidateQuestionGenerationView> {
       return execute(await http.POST("/api/teaching-classes/{class_id}/preparation-session/questions/candidates", {
         params: { path: { class_id: classId } },
+        body,
       }));
     },
 

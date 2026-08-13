@@ -456,6 +456,44 @@ export interface paths {
         patch: operations["update_join_policy_api_teaching_classes__class_id__join_policy_patch"];
         trace?: never;
     };
+    "/api/teaching-classes/{class_id}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename Teaching Class */
+        patch: operations["rename_teaching_class_api_teaching_classes__class_id__name_patch"];
+        trace?: never;
+    };
+    "/api/teaching-classes/{class_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Teaching Class
+         * @description 根据 ID 获取教学班详情。
+         */
+        get: operations["get_teaching_class_api_teaching_classes__class_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Teaching Class */
+        delete: operations["delete_teaching_class_api_teaching_classes__class_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/teaching-classes/discover": {
         parameters: {
             query?: never;
@@ -488,26 +526,6 @@ export interface paths {
          * @description 获取学习者已正式加入的教学班。
          */
         get: operations["list_learner_classes_api_teaching_classes_mine_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/teaching-classes/{class_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Teaching Class
-         * @description 根据 ID 获取教学班详情。
-         */
-        get: operations["get_teaching_class_api_teaching_classes__class_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -741,6 +759,24 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/teaching-classes/{class_id}/published-contents/{content_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Published Content */
+        put: operations["update_published_content_api_teaching_classes__class_id__published_contents__content_id__put"];
+        post?: never;
+        /** Delete Published Content */
+        delete: operations["delete_published_content_api_teaching_classes__class_id__published_contents__content_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -982,6 +1018,23 @@ export interface paths {
         put?: never;
         /** Generate Candidate Questions */
         post: operations["generate_candidate_questions_api_teaching_classes__class_id__preparation_session_questions_candidates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/teaching-classes/{class_id}/preparation-session/questions/{question_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Preparation Question */
+        post: operations["publish_preparation_question_api_teaching_classes__class_id__preparation_session_questions__question_id__publish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2073,6 +2126,16 @@ export interface components {
             /** Requestid */
             requestId: string;
         };
+        /** ApiResponse[QuestionPublicationView] */
+        ApiResponse_QuestionPublicationView_: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            data: components["schemas"]["QuestionPublicationView"];
+            /** Requestid */
+            requestId: string;
+        };
         /** ApiResponse[QuestionView] */
         ApiResponse_QuestionView_: {
             /** Code */
@@ -2160,6 +2223,16 @@ export interface components {
             /** Message */
             message: string;
             data: components["schemas"]["TeacherPublishedContentListView"];
+            /** Requestid */
+            requestId: string;
+        };
+        /** ApiResponse[TeacherPublishedContentView] */
+        ApiResponse_TeacherPublishedContentView_: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            data: components["schemas"]["TeacherPublishedContentView"];
             /** Requestid */
             requestId: string;
         };
@@ -2399,6 +2472,16 @@ export interface components {
              * Format: binary
              */
             file: Blob;
+        };
+        /**
+         * CandidateQuestionGenerationRequest
+         * @description 根据选中的教学重点生成指定数量的单选候选题。
+         */
+        CandidateQuestionGenerationRequest: {
+            /** Highlightids */
+            highlightIds: string[];
+            /** Questioncount */
+            questionCount: number;
         };
         /**
          * CandidateQuestionGenerationView
@@ -3489,7 +3572,7 @@ export interface components {
             levelChange: number;
             /**
              * Latestevidence
-             * @description 最近证据详情，包含questionId、resultType、createdAt
+             * @description 最近证据详情，包含questionId、questionTitle、resultType、createdAt
              */
             latestEvidence?: {
                 [key: string]: string | number;
@@ -3834,6 +3917,32 @@ export interface components {
             homeworkId: string;
         };
         /**
+         * PublishQuestionRequest
+         * @description 逐题发布请求。
+         */
+        PublishQuestionRequest: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "classroom" | "homework";
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Dueat
+             * @description 作业截止时间（Unix时间戳）
+             */
+            dueAt?: number | null;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+        };
+        /**
          * PublishedContentDetailView
          * @description 已发布内容详情视图，包含教学重点和来源信息
          */
@@ -3903,6 +4012,11 @@ export interface components {
             createdAt: number;
             /** Updatedat */
             updatedAt: number;
+            /**
+             * Completed
+             * @default false
+             */
+            completed: boolean;
             /** Dueat */
             dueAt?: number | null;
             /** Description */
@@ -3944,6 +4058,25 @@ export interface components {
              * @default false
              */
             canGenerateFromHighlights: boolean;
+        };
+        /**
+         * QuestionPublicationView
+         * @description 逐题发布结果。
+         */
+        QuestionPublicationView: {
+            /** Questionid */
+            questionId: string;
+            /** Contentid */
+            contentId: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "classroom" | "homework";
+            /** Homeworkid */
+            homeworkId?: string | null;
+            /** Createdat */
+            createdAt: number;
         };
         /**
          * QuestionReviewStatus
@@ -3991,6 +4124,16 @@ export interface components {
             createdAt: number;
             /** Updatedat */
             updatedAt: number;
+            /**
+             * Publishedclassroom
+             * @default false
+             */
+            publishedClassroom: boolean;
+            /**
+             * Publishedhomework
+             * @default false
+             */
+            publishedHomework: boolean;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -4009,6 +4152,14 @@ export interface components {
         RemoveHighlightRequest: {
             /** Highlightid */
             highlightId: string;
+        };
+        /**
+         * RenameTeachingClassRequest
+         * @description 教师重命名教学班请求。
+         */
+        RenameTeachingClassRequest: {
+            /** Name */
+            name: string;
         };
         /**
          * ResolveJoinRequestRequest
@@ -4458,6 +4609,11 @@ export interface components {
              */
             submittedCount: number;
             /**
+             * Submittedlearnerids
+             * @description 已提交该作业的学习者 ID
+             */
+            submittedLearnerIds?: string[];
+            /**
              * Latecount
              * @description 迟交人数
              * @default 0
@@ -4522,6 +4678,11 @@ export interface components {
             createdAt: number;
             /** Updatedat */
             updatedAt: number;
+            /**
+             * Completed
+             * @default false
+             */
+            completed: boolean;
             /** Dueat */
             dueAt?: number | null;
             /** Description */
@@ -4652,6 +4813,33 @@ export interface components {
             cleaningRules?: string[];
         };
         /**
+         * UpdatePublishedContentRequest
+         * @description 教师修改已发布课堂练习或作业请求。
+         */
+        UpdatePublishedContentRequest: {
+            /** Title */
+            title: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Dueat
+             * @description 作业截止时间（Unix时间戳）
+             */
+            dueAt?: number | null;
+            /** Stem */
+            stem?: string | null;
+            /** Options */
+            options?: string[] | null;
+            /** Answers */
+            answers?: number[] | null;
+            /** Knowledgepoints */
+            knowledgePoints?: string[] | null;
+            /** Hint */
+            hint?: string | null;
+            /** Explanation */
+            explanation?: string | null;
+        };
+        /**
          * UpdateQuestionRequest
          * @description 更新题目请求
          */
@@ -4718,7 +4906,7 @@ export interface components {
         };
         /**
          * XiaodChatRequest
-         * @description 小D伴学提问输入，携带当前课程内容的最小上下文。
+         * @description 小D伴学提问输入，携带当前课程内容的最小上下文和回答模式。
          */
         XiaodChatRequest: {
             /** Classid */
@@ -4727,7 +4915,11 @@ export interface components {
             contentId: string;
             /** Question */
             question: string;
-            file?: components["schemas"]["XiaodFileDescriptor"] | null;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "explain" | "guide";
         };
         /**
          * XiaodChatView
@@ -4753,18 +4945,6 @@ export interface components {
              * @description 引用来源的分段标题路径列表
              */
             references?: string[] | null;
-        };
-        /**
-         * XiaodFileDescriptor
-         * @description 小D伴学附件的元数据契约，仅记录不解析。
-         */
-        XiaodFileDescriptor: {
-            /** Name */
-            name: string;
-            /** Type */
-            type: string;
-            /** Size */
-            size: number;
         };
     };
     responses: never;
@@ -6411,14 +6591,20 @@ export interface operations {
             };
         };
     };
-    discover_classes_api_teaching_classes_discover_get: {
+    rename_teaching_class_api_teaching_classes__class_id__name_patch: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                class_id: string;
+            };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameTeachingClassRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -6426,10 +6612,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_DiscoverableClassListView_"];
+                    "application/json": components["schemas"]["ApiResponse_TeachingClassView_"];
                 };
             };
-            /** @description 只有学习者可以访问发现功能 */
+            /** @description 只有课程教师可以重命名课程 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6438,28 +6624,17 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_NoneType_"];
                 };
             };
-        };
-    };
-    list_learner_classes_api_teaching_classes_mine_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description 教学班不存在 */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_LearnerClassListView_"];
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
                 };
             };
-            /** @description 只有学习者可以查看我的课程 */
-            403: {
+            /** @description 请求参数不正确 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6509,6 +6684,113 @@ export interface operations {
             };
             /** @description 请求参数不正确 */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+        };
+    };
+    delete_teaching_class_api_teaching_classes__class_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 只有课程教师可以删除课程 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 教学班不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 请求参数不正确 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+        };
+    };
+    discover_classes_api_teaching_classes_discover_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_DiscoverableClassListView_"];
+                };
+            };
+            /** @description 只有学习者可以访问发现功能 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+        };
+    };
+    list_learner_classes_api_teaching_classes_mine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_LearnerClassListView_"];
+                };
+            };
+            /** @description 只有学习者可以查看我的课程 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7229,6 +7511,137 @@ export interface operations {
             };
         };
     };
+    update_published_content_api_teaching_classes__class_id__published_contents__content_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePublishedContentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_TeacherPublishedContentView_"];
+                };
+            };
+            /** @description 课程内容字段或类型不合法 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 只有教师可以修改已发布内容 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 课程内容不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 题目结构不完整 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 请求参数不正确 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+        };
+    };
+    delete_published_content_api_teaching_classes__class_id__published_contents__content_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 当前课程内容类型不支持删除 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 只有教师可以删除已发布内容 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 课程内容不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 请求参数不正确 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+        };
+    };
     list_published_contents_for_learner_api_teaching_classes__class_id__published_contents_learner_get: {
         parameters: {
             query?: never;
@@ -7347,6 +7760,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_CourseContentCompletionView_"];
+                };
+            };
+            /** @description 作业和课堂练习必须提交后自动完成 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
                 };
             };
             /** @description 只有班级正式成员可以标记内容完成 */
@@ -8138,7 +8560,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateQuestionGenerationRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -8149,7 +8575,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_CandidateQuestionGenerationView_"];
                 };
             };
-            /** @description 没有可用教学重点 */
+            /** @description 出题重点或题数无效 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -8169,6 +8595,78 @@ export interface operations {
             };
             /** @description 备课会话不存在 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 请求参数不正确 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+        };
+    };
+    publish_preparation_question_api_teaching_classes__class_id__preparation_session_questions__question_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishQuestionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_QuestionPublicationView_"];
+                };
+            };
+            /** @description 题目尚未确认或作业字段非法 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 只有教师可以发布题目 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 备课会话或题目不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description 该题目已发布此类型内容 */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
