@@ -176,39 +176,3 @@ cd frontend
 $env:VITE_API_BASE_URL='http://127.0.0.1:38117'
 npm run dev -- --host 127.0.0.1 --port 45173
 ```
-
-## 运行验证
-
-后端 HTTP 与领域测试：
-
-```powershell
-cd backend
-uv run pytest
-```
-
-前端 OpenAPI 类型生成、严格 TypeScript 检查和生产构建：
-
-```powershell
-cd frontend
-npm run build
-```
-
-双角色浏览器核心流程：
-
-```powershell
-cd frontend
-npm run test:e2e
-```
-
-E2E 使用隔离端口和临时 SQLite 文件，结束时会终止由测试启动的服务并删除临时数据库。若上述验证失败，应优先检查命令输出中的依赖或 TypeScript 编译错误，再检查端口和运行配置。
-
-## 数据与接口约定
-
-- 默认数据库为 `backend/data/course-agent.db`，首次启动时自动初始化；无需单独安装数据库服务。
-- 后端接口统一返回 `ApiResponse` 结构，包含 `code`、`message`、`data` 和 `requestId`；前端类型由 OpenAPI 自动生成。
-- 注册密码长度为 8–128 个字符，用户名长度为 3–40 个字符；教师/学习者角色在注册时固定。
-- 本地数据库、上传资料和 `.env` 可能包含账号或业务数据，对外提交前应检查并清理敏感内容。
-
-## 停止服务
-
-使用 `start.ps1` 启动时，在其终端按 `Ctrl+C`。分别启动时，分别在前后端终端按 `Ctrl+C`。提交或交接前请确认相关 Node.js、Python/Uvicorn 服务已停止。
