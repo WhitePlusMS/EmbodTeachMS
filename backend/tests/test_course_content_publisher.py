@@ -84,11 +84,17 @@ def test_publish_knowledge_modules(tmp_path: Path):
                 "SELECT * FROM course_contents WHERE class_id = ?", (class_id,)
             ).fetchall()
 
-            assert len(content_rows) == 1  # 应该创建1个知识模块
-            assert content_rows[0]["content_type"] == "knowledge_module"
-            assert content_rows[0]["publication_status"] == "published"
-            assert "段落 1" in content_rows[0]["title"]
-            assert "这是第一个测试段落内容" in content_rows[0]["content"]
+            assert len(content_rows) == 2  # 所有备课分段都应创建知识模块
+            assert {row["title"] for row in content_rows} == {
+                "知识模块 - 段落 1",
+                "知识模块 - 段落 2",
+            }
+            assert all(row["content_type"] == "knowledge_module" for row in content_rows)
+            assert all(row["publication_status"] == "published" for row in content_rows)
+            assert {row["content"] for row in content_rows} == {
+                "这是第一个测试段落内容",
+                "这是第二个测试段落内容",
+            }
 
 
 def test_publish_questions(tmp_path: Path):

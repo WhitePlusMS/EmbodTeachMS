@@ -30,7 +30,7 @@ class CourseContentPublisher:
     ) -> list[str]:
         """
         发布课程内容：
-        1. 转换教学重点为知识模块
+        1. 将全部备课分段发布为知识模块并保存重点快照
         2. 转换已确认题目为课堂练习
         3. 批量插入已发布状态的内容
 
@@ -50,13 +50,13 @@ class CourseContentPublisher:
             (session_row["id"],),
         ).fetchall()
 
-        # 获取教学重点
+        # 保存发布时的重点快照，避免切换备课文档后学生端丢失重点
         highlights = self._state.load_highlights(connection, session_row["id"])
 
         # 获取题目
         questions = self._state.load_questions(connection, session_row["id"])
 
-        # 转换教学重点为知识模块
+        # 发布全部备课分段，并为对应正文保存重点快照
         knowledge_module_ids = self._publish_knowledge_modules(
             connection, paragraph_rows, highlights, class_id, now, content_ids
         )
@@ -88,7 +88,7 @@ class CourseContentPublisher:
     ) -> PublishedHomeworkResult:
         """
         发布作业：
-        1. 转换教学重点为知识模块
+        1. 将全部备课分段发布为知识模块并保存重点快照
         2. 转换已确认题目为作业题目
         3. 创建作业内容记录
 
@@ -108,13 +108,13 @@ class CourseContentPublisher:
             (session_row["id"],),
         ).fetchall()
 
-        # 获取教学重点
+        # 保存发布时的重点快照，避免切换备课文档后学生端丢失重点
         highlights = self._state.load_highlights(connection, session_row["id"])
 
         # 获取题目
         questions = self._state.load_questions(connection, session_row["id"])
 
-        # 转换教学重点为知识模块
+        # 作业同样保留全部备课分段，并为对应正文保存重点快照
         knowledge_module_ids = self._publish_knowledge_modules(
             connection, paragraph_rows, highlights, class_id, now, content_ids
         )
@@ -151,45 +151,83 @@ class CourseContentPublisher:
 
         return {"content_ids": content_ids, "homework_id": homework_id}
 
+    def publish_single_question(
+        self,
+        connection: sqlite3.Connection,
+        class_id: str,
+        question: dict,
+    ) -> str:
+        """发布一条课堂练习，不改变备课会话的整体发布状态。"""
+        return self._insert_question(
+            connection,
+            class_id,
+            "课堂练习",
+            question,
+            self._now(),
+        )
+
+    def publish_single_question_homework(
+        self,
+        connection: sqlite3.Connection,
+        class_id: str,
+        question: dict,
+        title: str,
+        due_at: int,
+        description: str,
+    ) -> PublishedHomeworkResult:
+        """将一条题目发布为独立作业。"""
+        now = self._now()
+        question_content_id = self._insert_question(
+            connection,
+            class_id,
+            "作业题目",
+            question,
+            now,
+        )
+        content_ids = [question_content_id]
+        homework_id = self._publish_homework_content(
+            connection,
+            class_id,
+            title,
+            due_at,
+            description,
+            now,
+            content_ids,
+        )
+        connection.execute(
+            """
+            INSERT INTO homework_questions (homework_id, question_id, ordinal)
+            VALUES (?, ?, 0)
+            """,
+            (homework_id, question_content_id),
+        )
+        return {"content_ids": content_ids, "homework_id": homework_id}
+
     def _publish_knowledge_modules(
         self,
         connection: sqlite3.Connection,
         paragraph_rows: list[sqlite3.Row],
-        highlights: list[dict],
+        highlights: list[dict[str, object]],
         class_id: str,
         now: int,
         content_ids: list[str],
     ) -> list[str]:
-        """转换教学重点为知识模块"""
+        """为每个备课分段创建知识模块，教学重点只作为阅读时的高亮标记。"""
         knowledge_module_ids = []
 
-        # 按段落分组教学重点
-        highlights_by_paragraph = {}
+        highlights_by_paragraph: dict[int, list[dict[str, object]]] = {}
         for highlight in highlights:
-            paragraph_ordinal = highlight["paragraphOrdinal"]
-            if paragraph_ordinal not in highlights_by_paragraph:
-                highlights_by_paragraph[paragraph_ordinal] = []
-            highlights_by_paragraph[paragraph_ordinal].append(highlight)
+            paragraph_ordinal = highlight.get("paragraphOrdinal")
+            if isinstance(paragraph_ordinal, int):
+                highlights_by_paragraph.setdefault(paragraph_ordinal, []).append(highlight)
 
-        # 为每个有重点的段落创建知识模块
+        # 所有解析分段都必须成为学生可见课件，不能再由是否标记重点决定。
         for paragraph in paragraph_rows:
             paragraph_ordinal = paragraph["ordinal"]
-            paragraph_highlights = highlights_by_paragraph.get(paragraph_ordinal, [])
-
-            if not paragraph_highlights:
-                continue
-
-            # 创建知识模块内容
-            content_parts = [f"段落 {paragraph_ordinal}: {paragraph['content']}"]
-
-            # 添加重点内容
-            for i, highlight in enumerate(paragraph_highlights, 1):
-                start = highlight["startOffset"]
-                end = highlight["endOffset"]
-                highlighted_text = paragraph['content'][start:end]
-                content_parts.append(f"教学重点 {i}: {highlighted_text}")
-
-            content = "\n\n".join(content_parts)
+            # 正文直接使用原始分段，保证重点 offset 相对于课件正文仍然准确，
+            # 学生端可以在对应文字上显示黄色 mark，而不会把重点内容重复拼到正文后面。
+            content = paragraph["content"]
+            content_utf16_length = len(content.encode("utf-16-le")) // 2
 
             # 插入知识模块
             content_id = str(uuid.uuid4())
@@ -210,6 +248,38 @@ class CourseContentPublisher:
                     now,
                 ),
             )
+
+            # 将重点复制到正式课件维度，后续备课会话切换文档也不会影响学生阅读。
+            highlight_rows: list[tuple[str, str, int, int, int, int]] = []
+            for highlight in highlights_by_paragraph.get(paragraph_ordinal, []):
+                start_offset = highlight.get("startOffset")
+                end_offset = highlight.get("endOffset")
+                created_at = highlight.get("createdAt")
+                if not isinstance(start_offset, int) or not isinstance(end_offset, int):
+                    continue
+                if start_offset < 0 or end_offset <= start_offset or end_offset > content_utf16_length:
+                    continue
+                if not isinstance(created_at, int):
+                    created_at = now
+                highlight_rows.append(
+                    (
+                        str(uuid.uuid4()),
+                        content_id,
+                        paragraph_ordinal,
+                        start_offset,
+                        end_offset,
+                        created_at,
+                    )
+                )
+            if highlight_rows:
+                connection.executemany(
+                    """
+                    INSERT INTO course_content_highlights
+                    (id, content_id, paragraph_ordinal, start_offset, end_offset, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    highlight_rows,
+                )
 
             knowledge_module_ids.append(content_id)
             content_ids.append(content_id)

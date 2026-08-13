@@ -13,6 +13,8 @@ from app.teaching_classes.models import (
     PreparationSessionView,
     PublishHomeworkRequest,
     PublishHomeworkResponse,
+    PublishQuestionRequest,
+    QuestionPublicationView,
 )
 from app.teaching_classes.preparation_sessions import PreparationSessionRecords
 from app.teaching_classes.preparation_state import (
@@ -248,6 +250,172 @@ class PublicationModule:
                 code="HOMEWORK_PUBLICATION_FAILED",
                 message="作业发布失败，请稍后重试",
             ) from error
+
+    def publish_question(
+        self,
+        class_id: str,
+        question_id: str,
+        request: PublishQuestionRequest,
+        teacher: UserView,
+    ) -> QuestionPublicationView:
+        """逐题发布课堂练习或作业，不锁定备课会话。"""
+        if request.mode == "homework":
+            if request.due_at is None:
+                raise BusinessError(
+                    status_code=400,
+                    code="HOMEWORK_DUE_AT_REQUIRED",
+                    message="发布作业必须填写截止时间",
+                )
+            self.validate_homework_fields(request.title, request.due_at, self._now())
+
+        try:
+            with self._database.connect() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                self._access.require_owned_class(connection, class_id, teacher)
+                session_row = self._records.find(connection, class_id)
+                if session_row is None:
+                    raise BusinessError(
+                        status_code=404,
+                        code="PREPARATION_SESSION_NOT_FOUND",
+                        message="备课会话不存在",
+                    )
+                if session_row["parse_status"] != "completed":
+                    raise BusinessError(
+                        status_code=400,
+                        code="PREPARATION_SESSION_NOT_PARSED",
+                        message="备课会话未完成解析，无法发布题目",
+                    )
+
+                questions = self._state.load_questions(connection, session_row["id"])
+                question = next((item for item in questions if item["id"] == question_id), None)
+                if question is None:
+                    raise BusinessError(
+                        status_code=404,
+                        code="QUESTION_NOT_FOUND",
+                        message="题目不存在",
+                    )
+                if question["review_status"] != "confirmed":
+                    raise BusinessError(
+                        status_code=400,
+                        code="QUESTION_NOT_CONFIRMED",
+                        message="请先确认题目，再进行发布",
+                    )
+
+                existing = connection.execute(
+                    """
+                    SELECT content_id, homework_id, created_at
+                    FROM preparation_question_publications
+                    WHERE question_id = ? AND publication_mode = ?
+                    """,
+                    (question_id, request.mode),
+                ).fetchone()
+                if existing is not None:
+                    raise BusinessError(
+                        status_code=409,
+                        code="QUESTION_ALREADY_PUBLISHED",
+                        message="这道题已经发布过该类型内容",
+                    )
+                if self._legacy_question_was_published(
+                    connection,
+                    session_row["id"],
+                    question["stem"],
+                    request.mode,
+                ):
+                    raise BusinessError(
+                        status_code=409,
+                        code="QUESTION_ALREADY_PUBLISHED",
+                        message="这道题已经发布过该类型内容",
+                    )
+
+                homework_id: str | None = None
+                if request.mode == "classroom":
+                    content_id = self._publisher.publish_single_question(
+                        connection, class_id, question
+                    )
+                else:
+                    result = self._publisher.publish_single_question_homework(
+                        connection,
+                        class_id,
+                        question,
+                        request.title,
+                        request.due_at,
+                        request.description,
+                    )
+                    content_id = result["content_ids"][0]
+                    homework_id = result["homework_id"]
+
+                created_at = self._now()
+                connection.execute(
+                    """
+                    INSERT INTO preparation_question_publications
+                        (question_id, session_id, class_id, publication_mode,
+                         content_id, homework_id, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        question_id,
+                        session_row["id"],
+                        class_id,
+                        request.mode,
+                        content_id,
+                        homework_id,
+                        created_at,
+                    ),
+                )
+                logger.info(
+                    "question_published question_id=%s class_id=%s mode=%s content_id=%s",
+                    question_id,
+                    class_id,
+                    request.mode,
+                    content_id,
+                )
+                return QuestionPublicationView(
+                    question_id=question_id,
+                    content_id=content_id,
+                    mode=request.mode,
+                    homework_id=homework_id,
+                    created_at=created_at,
+                )
+        except BusinessError:
+            raise
+        except Exception as error:
+            logger.exception(
+                "question_publication_failed class_id=%s question_id=%s teacher_id=%s",
+                class_id,
+                question_id,
+                teacher.id,
+            )
+            raise BusinessError(
+                status_code=500,
+                code="QUESTION_PUBLICATION_FAILED",
+                message="题目发布失败，请稍后重试",
+            ) from error
+
+    @staticmethod
+    def _legacy_question_was_published(
+        connection: sqlite3.Connection,
+        session_id: str,
+        stem: str,
+        mode: str,
+    ) -> bool:
+        """识别旧整套发布产生的题目快照，避免升级后重复发布。"""
+        row = connection.execute(
+            """
+            SELECT 1
+            FROM preparation_sessions ps
+            CROSS JOIN json_each(ps.published_content_ids_json) published
+            JOIN course_contents cc ON cc.id = published.value
+            JOIN course_content_questions ccq ON ccq.content_id = cc.id
+            WHERE ps.id = ?
+              AND ccq.stem = ?
+              AND CASE WHEN EXISTS (
+                  SELECT 1 FROM homework_questions hq WHERE hq.question_id = cc.id
+              ) THEN 'homework' ELSE 'classroom' END = ?
+            LIMIT 1
+            """,
+            (session_id, stem, mode),
+        ).fetchone()
+        return row is not None
 
     def validate_homework_fields(
         self, title: str, due_at: int, now: int
