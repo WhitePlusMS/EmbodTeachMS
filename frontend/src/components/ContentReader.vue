@@ -331,7 +331,7 @@ onMounted(() => {
 <style scoped>
 .content-reader {
   min-height: 100vh;
-  background: #f3f5f2;
+  background: var(--color-canvas);
 }
 
 .reader-header {
@@ -348,22 +348,22 @@ onMounted(() => {
   flex: 0 0 auto;
   place-items: center;
   padding: 0;
-  border: 1px solid #dce3de;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  color: #146b4a;
-  background: #ffffff;
+  color: var(--color-brand);
+  background: var(--color-surface);
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
 .reader-back-button:hover {
-  border-color: #abd1ba;
-  color: #0f563b;
-  background: #f2f8f4;
+  border-color: var(--color-border-strong);
+  color: var(--color-brand-strong);
+  background: var(--color-brand-soft);
 }
 
 .reader-back-button:focus-visible {
-  outline: 3px solid rgb(224 165 63 / 55%);
+  outline: 3px solid var(--color-brand-focus);
   outline-offset: 2px;
 }
 
@@ -377,17 +377,17 @@ onMounted(() => {
 .nav-button {
   flex: 1;
   padding: 12px 16px;
-  border: 1px solid #dce3de;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #66736c;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
   font-weight: 800;
 }
 
 .nav-button.active {
-  background: #146b4a;
-  color: #ffffff;
-  border-color: #146b4a;
+  background: var(--color-brand);
+  color: var(--color-brand-contrast);
+  border-color: var(--color-brand);
 }
 
 /* 加载和错误状态 */
@@ -413,10 +413,10 @@ onMounted(() => {
   gap: 14px;
   margin-bottom: 18px;
   padding: 10px 14px;
-  border: 1px solid #dce3de;
-  border-radius: 13px;
-  color: #416055;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink-muted);
+  background: var(--color-surface);
   font-size: 13px;
   font-weight: 800;
 }
@@ -427,8 +427,8 @@ onMounted(() => {
 }
 
 .section-navigation .button:disabled {
-  color: #9aa9a3;
-  background: #f1f4f2;
+  color: var(--color-ink-subtle);
+  background: var(--color-surface-muted);
   cursor: not-allowed;
 }
 
@@ -446,25 +446,6 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 按钮样式 */
-.button {
-  min-height: 42px;
-  padding: 9px 17px;
-  border: 0;
-  border-radius: 11px;
-  font-weight: 800;
-}
-
-.button.primary {
-  color: #ffffff;
-  background: #146b4a;
-}
-
-.button.secondary {
-  color: #17392c;
-  background: #edf3ef;
-}
-
 /* 响应式设计：布局切换仅由 CSS media query 负责 */
 @media (max-width: 1024px) {
   .reader-header {
@@ -473,8 +454,8 @@ onMounted(() => {
     top: 0;
     z-index: 100;
     padding: 16px 20px;
-    border-bottom: 1px solid #dce3de;
-    background: #fbfcfb;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
   }
 
   .reader-back-button {

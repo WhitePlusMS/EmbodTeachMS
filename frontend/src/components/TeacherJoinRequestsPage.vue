@@ -126,9 +126,9 @@ const handleResolveRequest = (requestId: string, status: JoinRequestDecision) =>
   gap: 20px;
   align-items: center;
   padding: 16px;
-  border: 1px solid #dce3de;
+  border: 1px solid var(--color-border);
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .request-card.resolved {
@@ -145,13 +145,13 @@ const handleResolveRequest = (requestId: string, status: JoinRequestDecision) =>
 .request-status {
   margin: 0 0 8px;
   font-size: 14px;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .request-time {
   margin: 0;
   font-size: 12px;
-  color: #9aa9a3;
+  color: var(--color-ink-subtle);
 }
 
 .request-actions {

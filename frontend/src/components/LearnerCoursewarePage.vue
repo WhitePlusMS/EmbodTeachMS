@@ -92,29 +92,29 @@ const paragraphPreview = (content: PublishedContentView): string => {
   place-items: center;
   margin-bottom: 22px;
   padding: 0;
-  border: 1px solid #dce3de;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  color: #146b4a;
-  background: #ffffff;
+  color: var(--color-brand);
+  background: var(--color-surface);
   font-weight: 800;
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
 .back-link:hover {
-  border-color: #abd1ba;
-  color: #0f563b;
-  background: #f2f8f4;
+  border-color: var(--color-border-strong);
+  color: var(--color-brand-strong);
+  background: var(--color-brand-soft);
 }
 
 .back-link:focus-visible {
-  outline: 3px solid rgb(224 165 63 / 55%);
+  outline: 3px solid var(--color-brand-focus);
   outline-offset: 2px;
 }
 
 .courseware-header h1 {
   margin: 0 0 8px;
-  color: #17392c;
+  color: var(--color-ink-strong);
   font-size: clamp(32px, 4vw, 42px);
   letter-spacing: -0.04em;
 }
@@ -134,7 +134,7 @@ const paragraphPreview = (content: PublishedContentView): string => {
 
 .panel-heading h2 {
   margin: 0;
-  color: #17392c;
+  color: var(--color-ink-strong);
   font-size: 20px;
 }
 
@@ -154,8 +154,8 @@ const paragraphPreview = (content: PublishedContentView): string => {
   align-items: center;
   padding: 16px 4px;
   border: 0;
-  border-bottom: 1px solid #edf1ee;
-  color: #17392c;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-ink-strong);
   background: transparent;
   text-align: left;
   font: inherit;
@@ -167,7 +167,7 @@ const paragraphPreview = (content: PublishedContentView): string => {
 }
 
 .paragraph-row:hover {
-  color: #146b4a;
+  color: var(--color-brand);
 }
 
 .paragraph-number {
@@ -176,8 +176,8 @@ const paragraphPreview = (content: PublishedContentView): string => {
   height: 32px;
   place-items: center;
   border-radius: 10px;
-  color: #146b4a;
-  background: #def1e7;
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
   font-weight: 800;
 }
 
@@ -195,27 +195,27 @@ const paragraphPreview = (content: PublishedContentView): string => {
 }
 
 .paragraph-copy span {
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 13px;
 }
 
 .paragraph-status {
   padding: 4px 9px;
   border-radius: 999px;
-  color: #687970;
-  background: #f1f4f2;
+  color: var(--color-ink-muted);
+  background: var(--color-surface-muted);
   font-size: 11px;
   font-weight: 700;
 }
 
 .paragraph-status.completed {
-  color: #146b4a;
-  background: #def1e7;
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 
 .paragraph-arrow {
   display: block;
-  color: #9aa9a3;
+  color: var(--color-ink-subtle);
 }
 
 .empty-copy {

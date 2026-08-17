@@ -182,12 +182,6 @@ const handleJoinByAuthorizationCode = (): void => {
 .page-header h1,
 .section-heading h2 {
   margin: 0 0 8px;
-  color: #17392c;
-}
-
-.page-header h1 {
-  font-size: clamp(32px, 4vw, 42px);
-  letter-spacing: -0.04em;
 }
 
 .page-header .muted {
@@ -204,31 +198,28 @@ const handleJoinByAuthorizationCode = (): void => {
 
 .discover-card {
   overflow: hidden;
-  border: 1px solid #dce3de;
+  border: 1px solid var(--color-border);
   border-radius: 18px;
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: none;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
 }
 
 .discover-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 32px rgb(23 57 44 / 10%);
+  box-shadow: var(--shadow-md);
 }
 
 .discover-cover {
   display: flex;
   align-items: end;
-  min-height: 108px;
-  padding: 16px 18px;
-  color: #ffffff;
-  background: radial-gradient(circle at 20% 15%, #3a8e6b 0, #1e6047 45%, #123b2c 100%);
-  font-size: 21px;
+  min-height: 100%;
+  padding: 12px;
+  color: var(--color-brand-contrast);
+  font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.04em;
-}
-
-.discover-cover.alt {
-  background: radial-gradient(circle at 80% 10%, #4b7fa0 0, #295a75 45%, #17384b 100%);
 }
 
 .discover-body {
@@ -238,6 +229,7 @@ const handleJoinByAuthorizationCode = (): void => {
 }
 
 .discover-body h3 {
+  margin: 0;
   font-size: 16px;
 }
 
@@ -256,10 +248,10 @@ const handleJoinByAuthorizationCode = (): void => {
   align-items: center;
   justify-content: center;
   padding: 22px;
-  border: 2px dashed #b9c6bd;
+  border: 2px dashed var(--color-border-strong);
   background: transparent;
   text-align: center;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .course-add.expanded {
@@ -272,7 +264,7 @@ const handleJoinByAuthorizationCode = (): void => {
   width: 100%;
   padding: 0;
   border: 0;
-  color: #687970;
+  color: var(--color-ink-muted);
   background: transparent;
   text-align: center;
 }
@@ -282,19 +274,19 @@ const handleJoinByAuthorizationCode = (): void => {
 }
 
 .course-add:hover {
-  border-color: #146b4a;
-  background: #f8fbf9;
+  border-color: var(--color-brand);
+  background: var(--color-surface-muted);
 }
 
 .add-mark {
   display: block;
-  color: #146b4a;
+  color: var(--color-brand);
 }
 
 .course-add strong {
   display: block;
   margin: 6px 0;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .join-form {
@@ -319,14 +311,13 @@ const handleJoinByAuthorizationCode = (): void => {
 .join-fields label {
   display: grid;
   gap: 5px;
-  color: #416055;
+  color: var(--color-ink);
   font-size: 12px;
 }
 
 .join-fields input {
   min-height: 38px;
   padding: 7px 10px;
-  border-radius: 9px;
   font-size: 13px;
 }
 
@@ -343,7 +334,7 @@ const handleJoinByAuthorizationCode = (): void => {
 .discover-section {
   margin-top: 42px;
   padding-top: 28px;
-  border-top: 1px solid #dce3de;
+  border-top: 1px solid var(--color-border);
 }
 
 .section-heading {
@@ -354,31 +345,12 @@ const handleJoinByAuthorizationCode = (): void => {
   margin-bottom: 18px;
 }
 
-.section-heading h2 {
-  font-size: 24px;
-}
-
 .section-heading .eyebrow {
   margin-bottom: 7px;
 }
 
-.discover-card {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-}
-
-.discover-cover {
-  min-height: 100%;
-  padding: 12px;
-  font-size: 16px;
-}
-
-.discover-body h3 {
-  margin: 0;
-}
-
 .approval-note {
-  color: #8a5c0d;
+  color: var(--color-warning);
   line-height: 1.5;
 }
 

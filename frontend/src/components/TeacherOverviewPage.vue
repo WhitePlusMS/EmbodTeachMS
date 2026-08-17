@@ -339,17 +339,14 @@ const handleCancelEditOverview = () => {
   display: grid;
   gap: 6px;
   padding: 16px 18px 14px;
-  border: 1px solid #dce3de;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 8px 22px rgb(42 60 51 / 5%);
+  border-width: 1px;
+  border-style: solid;
 }
 
 .stat-card::before {
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  background: #146b4a;
   content: "";
 }
 
@@ -358,11 +355,10 @@ const handleCancelEditOverview = () => {
   font-size: 28px;
   font-weight: 900;
   line-height: 1.15;
-  color: #167451;
 }
 
 .stat-label {
-  color: #17221d;
+  color: var(--color-ink-strong);
   font-size: 13px;
   font-weight: 700;
 }
@@ -370,18 +366,9 @@ const handleCancelEditOverview = () => {
 .stat-sub {
   display: block;
   margin-top: 3px;
-  color: #8a9990;
+  color: var(--color-ink-subtle);
   font-size: 11px;
 }
-
-.stat-card.a2::before { background: #295a75; }
-.stat-card.a3::before { background: #8a520f; }
-.stat-card.a4::before { background: #6b5b95; }
-.stat-card.a5::before { background: #9c3d3d; }
-.stat-card.a2 strong { color: #3d7390; }
-.stat-card.a3 strong { color: #a47832; }
-.stat-card.a4 strong { color: #9e5d58; }
-.stat-card.a5 strong { color: #6d6399; }
 
 .course-core-panel {
   margin-top: 18px;
@@ -422,9 +409,9 @@ const handleCancelEditOverview = () => {
   gap: 18px;
   margin-bottom: 24px;
   padding: 20px;
-  border: 1px solid #b9d8c7;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #f5fbf7;
+  background: var(--color-surface-muted);
 }
 
 .candidate-header {
@@ -440,7 +427,7 @@ const handleCancelEditOverview = () => {
 .candidate-header p,
 .candidate-sections p {
   margin: 0;
-  color: #687970;
+  color: var(--color-ink-muted);
   line-height: 1.5;
 }
 
@@ -452,12 +439,11 @@ const handleCancelEditOverview = () => {
 .candidate-sections strong {
   display: block;
   margin-bottom: 4px;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
-.candidate-muted,
-.candidate-error {
-  color: #9b5b13;
+.candidate-muted {
+  color: var(--color-warning);
 }
 
 .candidate-actions {
@@ -477,13 +463,13 @@ const handleCancelEditOverview = () => {
   margin: 0 0 12px;
   font-size: 18px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .overview-text {
   margin: 0;
   line-height: 1.6;
-  color: #687970;
+  color: var(--color-ink-muted);
   padding: 0;
   background: transparent;
   min-height: 60px;
@@ -501,8 +487,6 @@ const handleCancelEditOverview = () => {
 
 .form-section textarea {
   padding: 12px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
@@ -510,8 +494,7 @@ const handleCancelEditOverview = () => {
 }
 
 .form-section textarea:focus {
-  outline: none;
-  border-color: #167451;
+  border-color: var(--color-brand);
 }
 
 /* 班级设置（覆盖全局 settings-card 的差异化部分） */
@@ -534,8 +517,6 @@ const handleCancelEditOverview = () => {
 
 .settings-card select {
   padding: 12px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
   font-size: 14px;
 }
 
@@ -567,7 +548,7 @@ const handleCancelEditOverview = () => {
 
 .empty-state-text {
   margin: 0;
-  color: #8a9990;
+  color: var(--color-ink-subtle);
   font-size: 14px;
   text-align: center;
   max-width: 420px;

@@ -68,18 +68,12 @@ const status = computed(() =>
 .homework-item {
   width: 100%;
   padding: 20px;
-  border: 1px solid #e9f4ee;
-  border-radius: 12px;
-  background: #f8faf9;
+  border-width: 1px;
+  border-style: solid;
   cursor: pointer;
   text-align: left;
   font: inherit;
   transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.homework-item:hover {
-  border-color: #167451;
-  background: #e9f4ee;
 }
 
 .homework-header {
@@ -96,16 +90,13 @@ const status = computed(() =>
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #17392c;
+  color: var(--color-ink-strong);
   overflow-wrap: anywhere;
 }
 
 .homework-type-badge {
   flex: 0 0 auto;
   padding: 4px 12px;
-  border-radius: 20px;
-  background: #e9f4ee;
-  color: #167451;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -118,7 +109,7 @@ const status = computed(() =>
 .homework-description {
   margin: 0 0 8px;
   line-height: 1.4;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .homework-meta {
@@ -127,18 +118,18 @@ const status = computed(() =>
   align-items: center;
   margin-bottom: 12px;
   font-size: 12px;
-  color: #9aa9a3;
+  color: var(--color-ink-subtle);
 }
 
 .homework-due {
   font-size: 14px;
-  color: #b42318;
+  color: var(--color-danger);
   font-weight: 600;
 }
 
 .homework-time {
   font-size: 12px;
-  color: #9aa9a3;
+  color: var(--color-ink-subtle);
 }
 
 .homework-footer {
@@ -147,7 +138,7 @@ const status = computed(() =>
   align-items: center;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 /* 作业状态样式 */
@@ -159,33 +150,33 @@ const status = computed(() =>
 }
 
 .status-pending {
-  color: #8a5c0d;
-  background: #fff9e6;
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
 }
 
 .status-draft {
-  color: #175cd3;
-  background: #eff8ff;
+  color: var(--color-info);
+  background: var(--color-info-soft);
 }
 
 .status-submitted {
-  color: #12b76a;
-  background: #f0fdf4;
+  color: var(--color-success);
+  background: var(--color-success-soft);
 }
 
 .status-late {
-  color: #b42318;
-  background: #fef3f2;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .status-overdue {
-  color: #b42318;
-  background: #fef3f2;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .homework-score {
   font-size: 14px;
-  color: #12b76a;
+  color: var(--color-success);
   font-weight: 600;
 }
 </style>

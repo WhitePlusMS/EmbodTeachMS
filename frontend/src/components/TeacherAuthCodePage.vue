@@ -110,8 +110,8 @@ const handleSaveAuthorizationCode = () => {
 .authorization-code {
   padding: 10px 14px;
   border-radius: 12px;
-  color: #146b4a;
-  background: #def1e7;
+  color: var(--color-brand);
+  background: var(--color-surface-muted);
   font-size: 20px;
   letter-spacing: 0.08em;
 }
@@ -141,8 +141,6 @@ const handleSaveAuthorizationCode = () => {
 
 .settings-card select {
   padding: 12px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
   font-size: 14px;
 }
 

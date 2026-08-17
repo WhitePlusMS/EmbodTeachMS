@@ -32,6 +32,13 @@ type DemoTask = {
   steps: DemoStep[];
 };
 
+// 3D 标签牌背景色：教学素材用固定的语义色，仅用于画布渲染（无法引用 CSS 令牌），
+// 集中定义便于统一调整与复用。
+const LABEL_COLOR_SHELF = "#8a5218"; // 货架 A-01（棕）
+const LABEL_COLOR_CRATE = "#1e5b86"; // 蓝色周转箱（蓝）
+const LABEL_COLOR_INSTRUCTION = "#0b3d31"; // 任务指令（深绿）
+const LABEL_COLOR_OBSERVATION = "#147052"; // 观察候选目标（青绿）
+
 const props = defineProps<{ viewerRole: ViewerRole }>();
 
 // 任务内容是产品内置的教学演示素材，不来自后端，也不允许教师或学生在页面内修改。
@@ -216,6 +223,8 @@ let mixer: THREE.AnimationMixer | null = null;
 let robotRoot: THREE.Group | null = null;
 let animationFrameId = 0;
 let resizeObserver: ResizeObserver | null = null;
+let rendererWidth = 0;
+let rendererHeight = 0;
 let targetVisual: THREE.Group | null = null;
 let shelfTargetVisual: THREE.Group | null = null;
 let crateTargetVisual: THREE.Group | null = null;
@@ -316,7 +325,7 @@ function createTargetVisuals(): void {
   shelfTargetVisual = new THREE.Group();
   addBox(shelfTargetVisual, [0.08, 1.1, 0.08], [0, 0.58, 0], 0xd59b4f);
   addBox(shelfTargetVisual, [1.25, 0.5, 0.08], [0, 1.18, 0], 0xe8b765);
-  const shelfLabel = createLabelSprite("A-01", "#8a5218");
+  const shelfLabel = createLabelSprite("A-01", LABEL_COLOR_SHELF);
   shelfLabel.position.set(0, 1.18, 0.06);
   shelfTargetVisual.add(shelfLabel);
   targetVisual.add(shelfTargetVisual);
@@ -324,7 +333,7 @@ function createTargetVisuals(): void {
   crateTargetVisual = new THREE.Group();
   addBox(crateTargetVisual, [0.95, 0.65, 0.72], [0, 0.38, 0], 0x2e82c3);
   addBox(crateTargetVisual, [1.02, 0.08, 0.08], [0, 0.38, 0.37], 0x9ed0f0);
-  const crateLabel = createLabelSprite("蓝色周转箱", "#1e5b86");
+  const crateLabel = createLabelSprite("蓝色周转箱", LABEL_COLOR_CRATE);
   crateLabel.position.set(0, 0.92, 0);
   crateTargetVisual.add(crateLabel);
   targetVisual.add(crateTargetVisual);
@@ -356,15 +365,15 @@ function createTeachingVisuals(): void {
   const instructionBoard = addBox(instructionVisual, [2.9, 0.92, 0.08], [0, 2.72, 0], 0x285746);
   instructionBoard.castShadow = false;
   instructionBoard.receiveShadow = false;
-  const instructionTitle = createLabelSprite("任务指令", "#0b3d31");
+  const instructionTitle = createLabelSprite("任务指令", LABEL_COLOR_INSTRUCTION);
   instructionTitle.scale.set(1.2, 0.3, 1);
   instructionTitle.position.set(-0.78, 2.92, 0.08);
   instructionVisual.add(instructionTitle);
-  instructionShelfLabel = createLabelSprite("找到货架 A-01", "#8a5218");
+  instructionShelfLabel = createLabelSprite("找到货架 A-01", LABEL_COLOR_SHELF);
   instructionShelfLabel.scale.set(1.55, 0.39, 1);
   instructionShelfLabel.position.set(0.55, 2.72, 0.08);
   instructionVisual.add(instructionShelfLabel);
-  instructionCrateLabel = createLabelSprite("寻找蓝色周转箱", "#1e5b86");
+  instructionCrateLabel = createLabelSprite("寻找蓝色周转箱", LABEL_COLOR_CRATE);
   instructionCrateLabel.scale.set(1.55, 0.39, 1);
   instructionCrateLabel.position.set(0.55, 2.72, 0.08);
   instructionVisual.add(instructionCrateLabel);
@@ -385,7 +394,7 @@ function createTeachingVisuals(): void {
   const sensorPoint = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), sensorPulseMaterial.clone());
   sensorPoint.position.set(0, 1.28, 0);
   observationVisual.add(sensorPoint);
-  const observationLabel = createLabelSprite("观察候选目标", "#147052");
+  const observationLabel = createLabelSprite("观察候选目标", LABEL_COLOR_OBSERVATION);
   observationLabel.scale.set(1.45, 0.36, 1);
   observationLabel.position.set(0, 1.72, 0);
   observationVisual.add(observationLabel);
@@ -412,7 +421,7 @@ function createTeachingVisuals(): void {
     new THREE.MeshBasicMaterial({ color: 0xfff0b1, transparent: true, opacity: 0.95, depthTest: false }),
   );
   understandingVisual.add(understandingPulse);
-  const understandingLabel = createLabelSprite("目标已匹配", "#8a5218");
+  const understandingLabel = createLabelSprite("目标已匹配", LABEL_COLOR_SHELF);
   understandingLabel.scale.set(1.35, 0.34, 1);
   understandingVisual.add(understandingLabel);
   teachingVisualGroup.add(understandingVisual);
@@ -567,6 +576,10 @@ function resizeRenderer(): void {
   const { clientWidth, clientHeight } = sceneHost.value;
   const width = Math.max(clientWidth, 1);
   const height = Math.max(clientHeight, 1);
+  if (width === rendererWidth && height === rendererHeight) return;
+
+  rendererWidth = width;
+  rendererHeight = height;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height, false);
@@ -720,6 +733,8 @@ function disposeScene(): void {
   scene = null;
   camera = null;
   renderer = null;
+  rendererWidth = 0;
+  rendererHeight = 0;
   controls = null;
   mixer = null;
   robotRoot = null;
@@ -872,50 +887,51 @@ onBeforeUnmount(disposeScene);
 .demo-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .demo-page-header h1 { margin-bottom: 8px; }
 .demo-page-header p:last-child { max-width: 760px; margin-bottom: 0; line-height: 1.7; }
-.demo-role-badge { flex: 0 0 auto; padding: 8px 12px; border: 1px solid #c9dfd1; border-radius: 999px; color: #176044; background: #edf8f1; font-size: 13px; font-weight: 800; }
+.demo-role-badge { flex: 0 0 auto; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--color-ink-muted); background: var(--color-surface-muted); font-size: 13px; font-weight: 800; }
 .demo-layout { display: grid; grid-template-columns: minmax(190px, 0.75fr) minmax(420px, 2fr) minmax(210px, 0.85fr); gap: 16px; align-items: stretch; }
 .demo-panel, .demo-stage { min-width: 0; }
 .demo-panel { display: grid; align-content: start; gap: 12px; padding: 18px; }
 .demo-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .demo-panel h2 { margin: 0; font-size: 20px; }
 .demo-panel .eyebrow { margin-bottom: 5px; }
-.demo-task-button { display: grid; gap: 6px; padding: 13px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: #fbfcfb; text-align: left; }
-.demo-task-button:hover, .demo-task-button.active { border-color: #7fb398; background: #eff8f2; }
-.demo-task-button span { color: var(--muted); font-size: 12px; line-height: 1.55; }
-.demo-readonly-note { margin: 2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
-.demo-stage { display: grid; grid-template-rows: minmax(410px, 1fr) auto; overflow: hidden; padding: 0; }
-.scene-host { position: relative; min-height: 410px; overflow: hidden; border-radius: 18px 18px 0 0; }
+.demo-task-button { display: grid; gap: 6px; padding: 13px; border: 1px solid var(--color-border); border-radius: 12px; color: var(--color-ink); background: var(--color-surface); text-align: left; }
+.demo-task-button:hover, .demo-task-button.active { border-color: var(--color-brand); background: var(--color-brand-soft); }
+.demo-task-button span { color: var(--color-ink-muted); font-size: 12px; line-height: 1.55; }
+.demo-readonly-note { margin: 2px 0 0; color: var(--color-ink-muted); font-size: 12px; line-height: 1.65; }
+/* 场景容器必须有确定且受限的高度，避免 canvas 的 100% 高度与 Grid 自适应互相放大。 */
+.demo-stage { display: grid; align-self: start; grid-template-rows: auto auto; overflow: hidden; padding: 0; }
+.scene-host { position: relative; width: 100%; min-height: 410px; max-height: 620px; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 18px 18px 0 0; }
 .scene-host canvas { display: block; width: 100%; height: 100%; }
 .scene-caption, .scene-hint, .scene-status, .scene-teaching-card { position: absolute; z-index: 1; margin: 0; }
-.scene-caption { top: 14px; left: 16px; padding: 7px 10px; border: 1px solid rgb(255 255 255 / 16%); border-radius: 999px; color: #f1f7f3; background: rgb(16 42 33 / 74%); font-size: 12px; font-weight: 800; }
-.scene-teaching-card { top: 56px; left: 16px; display: grid; gap: 5px; width: min(330px, calc(100% - 32px)); padding: 12px 14px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 12px; color: #f2faf5; background: rgb(16 42 33 / 82%); box-shadow: 0 8px 20px rgb(0 0 0 / 18%); }
-.scene-teaching-card span { color: #b9d7c5; font-size: 11px; font-weight: 800; }
+.scene-caption { top: 14px; left: 16px; padding: 7px 10px; border: 1px solid var(--color-on-brand-border); border-radius: 999px; color: var(--color-brand-contrast); background: color-mix(in srgb, var(--color-brand-deep) 74%, transparent); font-size: 12px; font-weight: 800; }
+.scene-teaching-card { top: 56px; left: 16px; display: grid; gap: 5px; width: min(330px, calc(100% - 32px)); padding: 12px 14px; border: 1px solid var(--color-on-brand-border); border-radius: 12px; color: var(--color-brand-contrast); background: color-mix(in srgb, var(--color-brand-deep) 82%, transparent); box-shadow: var(--shadow-md); }
+.scene-teaching-card span { color: var(--color-on-deep-soft); font-size: 11px; font-weight: 800; }
 .scene-teaching-card strong { font-size: 14px; }
-.scene-teaching-card small { color: #d8e9df; font-size: 12px; line-height: 1.55; }
-.scene-hint { right: 16px; bottom: 14px; color: rgb(238 249 242 / 78%); font-size: 11px; }
-.scene-status { top: 50%; left: 50%; padding: 10px 14px; border-radius: 10px; color: #f8fff9; background: rgb(16 42 33 / 82%); transform: translate(-50%, -50%); font-size: 13px; }
-.scene-status-error { color: #ffe3dd; background: rgb(123 45 40 / 88%); }
-.stage-footer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 14px 16px; background: #f8fbf8; }
+.scene-teaching-card small { color: var(--color-on-deep); font-size: 12px; line-height: 1.55; }
+.scene-hint { right: 16px; bottom: 14px; color: var(--color-on-brand-copy); font-size: 11px; }
+.scene-status { top: 50%; left: 50%; padding: 10px 14px; border-radius: 10px; color: var(--color-brand-contrast); background: color-mix(in srgb, var(--color-brand-deep) 82%, transparent); transform: translate(-50%, -50%); font-size: 13px; }
+.scene-status-error { color: var(--color-brand-contrast); background: color-mix(in srgb, var(--color-danger) 88%, transparent); }
+.stage-footer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 14px 16px; background: var(--color-surface-muted); }
 .stage-footer > div { display: grid; gap: 4px; }
-.stage-label { color: var(--muted); font-size: 11px; }
+.stage-label { color: var(--color-ink-muted); font-size: 11px; }
 .stage-footer strong { font-size: 13px; }
-.step-progress { height: 6px; overflow: hidden; border-radius: 999px; background: #e7ece8; }
-.step-progress span { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width 0.2s ease; }
+.step-progress { height: 6px; overflow: hidden; border-radius: 999px; }
+.step-progress span { display: block; height: 100%; border-radius: inherit; transition: width 0.2s ease; }
 .demo-step-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.demo-step-button { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 9px; align-items: center; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 10px; color: var(--ink); background: transparent; text-align: left; }
-.demo-step-button:hover, .demo-step-button.active { border-color: #c5dfcf; background: #eff8f2; }
-.step-number { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; color: #416055; background: #e7efe9; font-size: 12px; font-weight: 800; }
-.demo-step-button.active .step-number { color: #ffffff; background: var(--green); }
+.demo-step-button { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 9px; align-items: center; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 10px; color: var(--color-ink); background: transparent; text-align: left; }
+.demo-step-button:hover, .demo-step-button.active { border-color: var(--color-brand); background: var(--color-brand-soft); }
+.step-number { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; color: var(--color-ink-muted); background: var(--color-surface-muted); font-size: 12px; font-weight: 800; }
+.demo-step-button.active .step-number { color: var(--color-brand-contrast); background: var(--color-brand); }
 .demo-step-button strong, .demo-step-button small { display: block; }
 .demo-step-button strong { font-size: 12px; }
-.demo-step-button small { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.demo-step-button small { margin-top: 3px; overflow: hidden; color: var(--color-ink-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .step-navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 2px; }
 .demo-explanation-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 16px; margin-top: 16px; }
 .demo-explanation-card { min-width: 0; padding: 18px; }
 .demo-explanation-card h2 { margin: 0 0 8px; font-size: 19px; }
-.demo-explanation-card > p:last-child { margin-bottom: 0; color: #40534a; line-height: 1.7; }
-.demo-explanation-card ul { display: grid; gap: 7px; margin: 0; padding-left: 18px; color: #40534a; font-size: 13px; line-height: 1.55; }
-.learning-point-card { background: #f4faf6; }
+.demo-explanation-card > p:last-child { margin-bottom: 0; color: var(--color-ink); line-height: 1.7; }
+.demo-explanation-card ul { display: grid; gap: 7px; margin: 0; padding-left: 18px; color: var(--color-ink); font-size: 13px; line-height: 1.55; }
+.learning-point-card { background: var(--color-surface-accent); }
 
 @media (max-width: 1100px) {
   .demo-layout { grid-template-columns: 1fr 1.8fr; }

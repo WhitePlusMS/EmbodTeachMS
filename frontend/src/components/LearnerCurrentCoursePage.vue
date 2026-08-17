@@ -390,18 +390,11 @@ watch(() => props.refreshToken, loadPublishedContents);
 
 .page-header h1 {
   margin: 0 0 8px;
-  color: #17392c;
-  font-size: clamp(32px, 4vw, 42px);
-  letter-spacing: -0.04em;
 }
 
 .page-header .muted {
   margin: 0;
   line-height: 1.7;
-}
-
-.state-wrap {
-  margin-top: 28px;
 }
 
 .course-workbench {
@@ -423,18 +416,15 @@ watch(() => props.refreshToken, loadPublishedContents);
 
 .hero-card {
   padding: 28px 30px;
-  border-radius: 18px;
-  color: #ffffff;
-  background: linear-gradient(135deg, #146b4a, #1d8059 62%, #2a9267);
-  box-shadow: 0 18px 38px rgb(20 107 74 / 18%);
+  color: var(--color-brand-contrast);
 }
 
 .hero-tag {
   display: inline-flex;
   padding: 5px 10px;
   border-radius: 999px;
-  color: #ffffff;
-  background: rgb(255 255 255 / 14%);
+  color: var(--color-brand-contrast);
+  background: var(--color-on-brand-soft);
   font-size: 12px;
   font-weight: 800;
 }
@@ -442,6 +432,7 @@ watch(() => props.refreshToken, loadPublishedContents);
 .hero-card h2 {
   max-width: 680px;
   margin: 18px 0 10px;
+  color: var(--color-brand-contrast);
   font-size: clamp(24px, 3vw, 34px);
   line-height: 1.25;
   letter-spacing: -0.03em;
@@ -450,13 +441,8 @@ watch(() => props.refreshToken, loadPublishedContents);
 .hero-card p {
   max-width: 690px;
   margin: 0 0 22px;
-  color: rgb(255 255 255 / 78%);
+  color: var(--color-on-brand-copy-strong);
   line-height: 1.7;
-}
-
-.hero-button {
-  color: #17392c;
-  background: #f0bd72;
 }
 
 .panel-heading {
@@ -474,7 +460,7 @@ watch(() => props.refreshToken, loadPublishedContents);
 .panel-heading h2,
 .suggestion-panel h2 {
   margin: 0;
-  color: #17392c;
+  color: var(--color-ink-strong);
   font-size: 19px;
 }
 
@@ -495,8 +481,8 @@ watch(() => props.refreshToken, loadPublishedContents);
   align-items: center;
   padding: 14px 4px;
   border: 0;
-  border-bottom: 1px solid #edf1ee;
-  color: #17392c;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-ink-strong);
   background: transparent;
   text-align: left;
 }
@@ -506,7 +492,7 @@ watch(() => props.refreshToken, loadPublishedContents);
 }
 
 .chapter-row:hover {
-  color: #146b4a;
+  color: var(--color-brand);
 }
 
 .courseware-entry {
@@ -518,15 +504,15 @@ watch(() => props.refreshToken, loadPublishedContents);
   padding: 16px 4px;
   border: 0;
   border-radius: 12px;
-  color: #17392c;
-  background: #f4f8f5;
+  color: var(--color-ink-strong);
+  background: var(--color-surface-muted);
   text-align: left;
   font: inherit;
   cursor: pointer;
 }
 
 .courseware-entry:hover {
-  background: #e9f4ee;
+  background: var(--color-brand-soft);
 }
 
 .courseware-entry-icon {
@@ -535,8 +521,8 @@ watch(() => props.refreshToken, loadPublishedContents);
   height: 38px;
   place-items: center;
   border-radius: 12px;
-  color: #ffffff;
-  background: #146b4a;
+  color: var(--color-brand-contrast);
+  background: var(--color-brand);
 }
 
 .courseware-entry-copy {
@@ -547,14 +533,14 @@ watch(() => props.refreshToken, loadPublishedContents);
 
 .courseware-entry-copy span {
   overflow: hidden;
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .courseware-entry-progress {
-  color: #146b4a;
+  color: var(--color-brand);
   font-size: 12px;
   font-weight: 800;
 }
@@ -565,8 +551,8 @@ watch(() => props.refreshToken, loadPublishedContents);
   height: 30px;
   place-items: center;
   border-radius: 10px;
-  color: #146b4a;
-  background: #def1e7;
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
   font-weight: 800;
 }
 
@@ -592,25 +578,25 @@ watch(() => props.refreshToken, loadPublishedContents);
 .chapter-status {
   padding: 4px 8px;
   border-radius: 999px;
-  color: #687970;
-  background: #f1f4f2;
+  color: var(--color-ink-muted);
+  background: var(--color-surface-muted);
   font-size: 11px;
   font-weight: 700;
 }
 
 .chapter-status.active {
-  color: #8a5c0d;
-  background: #fff3d6;
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
 }
 
 .chapter-status.completed {
-  color: #146b4a;
-  background: #def1e7;
+  color: var(--color-success);
+  background: var(--color-success-soft);
 }
 
 .chapter-arrow {
   display: block;
-  color: #9aa9a3;
+  color: var(--color-ink-subtle);
 }
 
 .homework-list {
@@ -620,7 +606,6 @@ watch(() => props.refreshToken, loadPublishedContents);
 
 .homework-list :deep(.homework-item) {
   padding: 15px;
-  border-radius: 13px;
 }
 
 .homework-list :deep(.homework-description),
@@ -634,7 +619,7 @@ watch(() => props.refreshToken, loadPublishedContents);
 }
 
 .suggestion-panel {
-  background: #f8fbf9;
+  background: var(--color-surface-muted);
 }
 
 .suggestion-panel .eyebrow {
@@ -647,7 +632,7 @@ watch(() => props.refreshToken, loadPublishedContents);
 
 .suggestion-panel p:not(.eyebrow) {
   margin: 9px 0 16px;
-  color: #687970;
+  color: var(--color-ink-muted);
   line-height: 1.65;
 }
 
@@ -658,7 +643,7 @@ watch(() => props.refreshToken, loadPublishedContents);
 
 .mastery-helper {
   margin: 5px 0 0;
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -682,7 +667,7 @@ watch(() => props.refreshToken, loadPublishedContents);
 }
 
 .mastery-field-label {
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 11px;
 }
 
@@ -690,19 +675,19 @@ watch(() => props.refreshToken, loadPublishedContents);
   display: flex;
   flex-wrap: wrap;
   gap: 6px 12px;
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 11px;
 }
 
 .mastery-facts strong {
-  color: #416055;
+  color: var(--color-ink);
   font-variant-numeric: tabular-nums;
 }
 
 .mastery-evidence {
   overflow: hidden;
   margin: 0;
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 11px;
   line-height: 1.5;
   text-overflow: ellipsis;
@@ -719,7 +704,7 @@ watch(() => props.refreshToken, loadPublishedContents);
 .mastery-action-hint {
   min-width: 0;
   overflow: hidden;
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;

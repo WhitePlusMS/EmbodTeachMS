@@ -39,14 +39,14 @@ withDefaults(defineProps<{
 
 .class-context-header h1 {
   margin: 0 0 8px;
-  color: #17392c;
+  color: var(--color-ink-strong);
   font-size: clamp(30px, 4vw, 42px);
   letter-spacing: -0.04em;
 }
 
 .class-context-header .eyebrow {
   margin: 0 0 8px;
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -64,15 +64,13 @@ withDefaults(defineProps<{
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 13px;
 }
 
 .status-badge {
   padding: 5px 9px;
   border-radius: 999px;
-  color: #17613a;
-  background: #def1e7;
   font-weight: 800;
 }
 

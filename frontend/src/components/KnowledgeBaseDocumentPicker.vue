@@ -66,14 +66,14 @@ const emit = defineEmits<{
   justify-content: space-between;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #dce5de;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .knowledge-base-document-option.selected {
-  border-color: #146b4a;
-  background: #f0f8f3;
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 
 .knowledge-base-document-option.disabled {
@@ -91,7 +91,7 @@ const emit = defineEmits<{
 .knowledge-base-document-select input {
   flex: 0 0 auto;
   margin-top: 3px;
-  accent-color: #146b4a;
+  accent-color: var(--color-brand);
 }
 
 .knowledge-base-document-select span {
@@ -111,9 +111,9 @@ const emit = defineEmits<{
 .knowledge-base-document-empty {
   margin: 0;
   padding: 18px;
-  border: 1px dashed #cbd8cf;
+  border: 1px dashed var(--color-border-strong);
   border-radius: 10px;
-  color: #66736b;
+  color: var(--color-ink-muted);
 }
 
 @media (max-width: 620px) {

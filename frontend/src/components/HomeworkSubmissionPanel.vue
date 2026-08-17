@@ -339,15 +339,14 @@ onUnmounted(() => {
 <style scoped>
 .homework-submission-panel {
   padding: 24px;
-  background: #ffffff;
-  border: 1px solid #dce5de;
-  border-radius: 12px;
+  border-width: 1px;
+  border-style: solid;
   margin-top: 24px;
 }
 
 .homework-header {
   margin-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: 16px;
 }
 
@@ -355,7 +354,7 @@ onUnmounted(() => {
   margin: 0 0 8px;
   font-size: 24px;
   font-weight: 700;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .homework-meta {
@@ -366,7 +365,7 @@ onUnmounted(() => {
 
 .due-date {
   font-size: 14px;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .overdue-badge,
@@ -379,38 +378,38 @@ onUnmounted(() => {
 }
 
 .overdue-badge {
-  background: #fef3f2;
-  color: #b42318;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 .submitted-badge {
-  background: #f0fdf4;
-  color: #12b76a;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .draft-badge {
-  background: #fff9e6;
-  color: #8a5c0d;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
 }
 
 .homework-description {
   margin-bottom: 24px;
   padding: 16px;
-  background: #f8faf9;
+  background: var(--color-surface-muted);
   border-radius: 8px;
 }
 
 .homework-description p {
   margin: 0;
   line-height: 1.6;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .submission-result {
   margin-bottom: 24px;
   padding: 16px;
-  background: #f0fdf4;
-  border: 1px solid #d1fadf;
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-success);
   border-radius: 8px;
 }
 
@@ -418,7 +417,7 @@ onUnmounted(() => {
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .result-stats {
@@ -429,7 +428,7 @@ onUnmounted(() => {
 .score,
 .correct-count {
   font-size: 14px;
-  color: #12b76a;
+  color: var(--color-success);
   font-weight: 600;
 }
 
@@ -440,7 +439,8 @@ onUnmounted(() => {
 .question-item {
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
 }
 
 .question-item:last-child {
@@ -453,7 +453,7 @@ onUnmounted(() => {
 }
 
 .question-progress {
-  color: #146b4a;
+  color: var(--color-brand);
   font-size: 12px;
   font-weight: 800;
 }
@@ -462,22 +462,22 @@ onUnmounted(() => {
   margin: 0 0 12px;
   font-size: 18px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
   line-height: 1.4;
 }
 
 .question-hint {
   margin-bottom: 16px;
   padding: 8px 12px;
-  background: #fff9e6;
+  background: var(--color-warning-soft);
   border-radius: 6px;
-  color: #8a5c0d;
+  color: var(--color-warning);
 }
 
 .explanation {
   margin-top: 12px;
   padding: 12px 16px;
-  background: #f8faf9;
+  background: var(--color-surface-muted);
   border-radius: 8px;
 }
 
@@ -485,13 +485,13 @@ onUnmounted(() => {
   margin: 0 0 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .explanation p {
   margin: 0;
   font-size: 14px;
-  color: #687970;
+  color: var(--color-ink-muted);
   line-height: 1.5;
 }
 
@@ -501,7 +501,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 13px 0 0;
-  color: #416055;
+  color: var(--color-ink);
   font-size: 13px;
   font-weight: 800;
 }
@@ -512,37 +512,37 @@ onUnmounted(() => {
   gap: 6px;
   min-height: 38px;
   padding: 8px 13px;
-  border: 1px solid #dce5de;
+  border: 1px solid var(--color-border);
   border-radius: 9px;
-  color: #17392c;
-  background: #f8faf9;
+  color: var(--color-ink-strong);
+  background: var(--color-surface-muted);
   font: inherit;
   cursor: pointer;
 }
 
 .question-nav-button:disabled {
-  color: #9aa9a3;
-  background: #f1f4f2;
+  color: var(--color-ink-subtle);
+  background: var(--color-surface-muted);
   cursor: not-allowed;
 }
 
 .empty-copy {
   margin: 0;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .error-message {
-  background: #fef3f2;
-  border: 1px solid #fecdca;
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
   border-radius: 8px;
   padding: 12px 16px;
-  color: #b42318;
+  color: var(--color-danger);
   font-size: 14px;
   margin-bottom: 16px;
 }
 
 .action-section {
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border-subtle);
   padding-top: 20px;
 }
 
@@ -560,44 +560,46 @@ onUnmounted(() => {
   font-weight: 600;
   font-size: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
 }
 
 .save-draft-button {
-  background: #f8faf9;
-  color: #17392c;
-  border: 1px solid #dce5de;
+  background: var(--color-surface-muted);
+  color: var(--color-ink-strong);
+  border: 1px solid var(--color-border);
 }
 
 .save-draft-button:hover:not(:disabled) {
-  background: #e9f4ee;
-  border-color: #167451;
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand);
 }
 
 .save-draft-button:disabled {
-  background: #f8faf9;
-  color: #9aa9a3;
+  background: var(--color-surface-muted);
+  color: var(--color-ink-subtle);
   cursor: not-allowed;
 }
 
 .submit-button {
-  background: #167451;
-  color: #ffffff;
+  background: var(--color-brand);
+  color: var(--color-brand-contrast);
 }
 
 .submit-button:hover:not(:disabled) {
-  background: #135e3f;
+  background: var(--color-accent-strong);
 }
 
 .submit-button:disabled {
-  background: #dce5de;
-  color: #687970;
+  background: var(--color-border);
+  color: var(--color-ink-muted);
   cursor: not-allowed;
 }
 
 .last-saved {
   font-size: 12px;
-  color: #9aa9a3;
+  color: var(--color-ink-subtle);
   text-align: center;
 }
 

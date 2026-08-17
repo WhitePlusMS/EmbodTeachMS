@@ -275,9 +275,9 @@ watch(() => props.selectedClassId, () => {
 .insufficient-sample-notice {
   margin-bottom: 32px;
   padding: 16px;
-  border: 1px solid #f1c21b;
+  border: 1px solid var(--color-highlight);
   border-radius: 8px;
-  background: #fffcf0;
+  background: var(--color-warning-soft);
 }
 
 .notice-content {
@@ -286,18 +286,14 @@ watch(() => props.selectedClassId, () => {
   gap: 12px;
 }
 
-.notice-icon {
-  font-size: 18px;
-}
-
 .notice-content strong {
-  color: #7d4e00;
+  color: var(--color-warning);
   font-weight: 600;
 }
 
 .notice-content p {
   margin: 4px 0 0;
-  color: #7d4e00;
+  color: var(--color-warning);
   font-size: 14px;
 }
 
@@ -310,117 +306,7 @@ watch(() => props.selectedClassId, () => {
   margin: 0 0 20px;
   font-size: 20px;
   font-weight: 600;
-  color: #17392c;
-}
-
-/* 概览区域样式 */
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.overview-card {
-  padding: 24px;
-  border: 1px solid #dce5de;
-  border-radius: 12px;
-  background: #ffffff;
-}
-
-.overview-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #167451;
-  margin-bottom: 8px;
-}
-
-.overview-label {
-  font-size: 14px;
-  color: #687970;
-}
-
-/* 掌握度分布样式 */
-.mastery-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-}
-
-.mastery-item {
-  padding: 20px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
-  background: #f8faf9;
-}
-
-.mastery-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #167451;
-  margin-bottom: 4px;
-}
-
-.mastery-label {
-  font-size: 12px;
-  color: #687970;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* 待巩固知识点样式 */
-.consolidation-list {
-  display: grid;
-  gap: 12px;
-}
-
-.consolidation-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
-  background: #ffffff;
-}
-
-.topic-name {
-  font-weight: 600;
-  color: #17392c;
-}
-
-.topic-stats {
-  display: flex;
-  gap: 16px;
-  font-size: 14px;
-  color: #687970;
-}
-
-/* 高频提问样式 */
-.questions-list {
-  display: grid;
-  gap: 12px;
-}
-
-.question-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
-  background: #ffffff;
-}
-
-.question-topic {
-  font-weight: 600;
-  color: #17392c;
-}
-
-.question-stats {
-  display: flex;
-  gap: 16px;
-  font-size: 14px;
-  color: #687970;
+  color: var(--color-ink-strong);
 }
 
 /* 作业摘要样式 */
@@ -432,21 +318,20 @@ watch(() => props.selectedClassId, () => {
 
 .homework-item {
   padding: 20px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
-  background: #f8faf9;
+  border-width: 1px;
+  border-style: solid;
 }
 
 .homework-value {
   font-size: 20px;
   font-weight: 600;
-  color: #167451;
+  color: var(--color-brand);
   margin-bottom: 4px;
 }
 
 .homework-label {
   font-size: 12px;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 /* 学习者预览样式 */
@@ -457,43 +342,6 @@ watch(() => props.selectedClassId, () => {
   margin-bottom: 20px;
 }
 
-.learners-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.learner-card {
-  padding: 20px;
-  border: 1px solid #dce5de;
-  border-radius: 12px;
-  background: #ffffff;
-}
-
-.learner-name {
-  font-weight: 600;
-  color: #17392c;
-  margin-bottom: 8px;
-}
-
-.learner-stats {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  color: #687970;
-}
-
-/* 实训状态样式 */
-.simulation-status {
-  padding: 20px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
-  background: #f8faf9;
-  text-align: center;
-}
-
-.simulation-metrics { display: flex; flex-wrap: wrap; gap: 16px; justify-content: flex-start; color: #17392c; font-weight: 600; }
-
 /* 原型布局：教师关注指标、双栏分析卡片、证据行和学习者表格。 */
 .dashboard-content {
   display: grid;
@@ -502,7 +350,7 @@ watch(() => props.selectedClassId, () => {
 
 .dashboard-content h2,
 .dashboard-content h3 {
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .home-grid {
@@ -528,7 +376,7 @@ watch(() => props.selectedClassId, () => {
   grid-template-columns: 92px 1fr 44px;
   gap: 12px;
   align-items: center;
-  color: #334b40;
+  color: var(--color-ink-strong);
   font-size: 13px;
 }
 
@@ -536,19 +384,19 @@ watch(() => props.selectedClassId, () => {
   height: 9px;
   overflow: hidden;
   border-radius: 999px;
-  background: #edf1ed;
 }
 
 .bar-row .progress span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #146b4a;
 }
 
-.bar-row.warning .progress span { background: #d18431; }
-.bar-row.expert .progress span { background: #4f8795; }
-.bar-row.neutral .progress span { background: #aab8af; }
+/* 掌握度分布按状态着色：沿用语义状态令牌，保留 warning/success/neutral 的区分度。 */
+.bar-row.neutral .progress span { background: var(--color-ink-muted); }
+.bar-row.warning .progress span { background: var(--color-warning); }
+.bar-row.good .progress span { background: var(--color-success); }
+.bar-row.expert .progress span { background: var(--color-success); }
 
 .bar-row strong {
   text-align: right;
@@ -563,7 +411,7 @@ watch(() => props.selectedClassId, () => {
   grid-template-columns: 1fr auto;
   gap: 10px;
   padding: 13px 0;
-  border-bottom: 1px solid #dce3de;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .evidence:last-child {
@@ -584,10 +432,6 @@ watch(() => props.selectedClassId, () => {
   margin-top: 0;
 }
 
-.homework-item {
-  border-radius: 14px;
-}
-
 .learners-section {
   overflow: hidden;
 }
@@ -603,7 +447,7 @@ watch(() => props.selectedClassId, () => {
 .link-button {
   padding: 0;
   border: 0;
-  color: #146b4a;
+  color: var(--color-brand);
   background: transparent;
   font: inherit;
   font-weight: 800;
@@ -621,33 +465,14 @@ watch(() => props.selectedClassId, () => {
     grid-template-columns: 84px 1fr 40px;
   }
 
-  .overview-grid,
-  .mastery-grid,
   .homework-grid {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-
-  .learners-grid {
-    grid-template-columns: 1fr;
   }
 
   .learners-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
-  }
-
-  .consolidation-item,
-  .question-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .topic-stats,
-  .question-stats {
-    justify-content: space-between;
-    width: 100%;
   }
 }
 </style>

@@ -124,22 +124,20 @@ watch(() => props.detail, detail => {
 </template>
 
 <style scoped>
-.baseline-practice-panel { margin-top: 24px; padding: 24px; border: 1px solid #dce5de; border-radius: 12px; background: #fbfdfb; }
+.baseline-practice-panel { margin-top: 24px; padding: 24px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); }
 .baseline-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
-.eyebrow { color: #167451; font-size: 12px; font-weight: 700; }
-h3 { margin: 6px 0 0; color: #17392c; line-height: 1.5; }
-.state-badge { padding: 6px 10px; border-radius: 999px; background: #e9f4ee; color: #167451; white-space: nowrap; font-size: 13px; }
-.baseline-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 4px; color: #52645a; font-size: 13px; }
-.knowledge-points { margin: 6px 0 16px; color: #687970; font-size: 13px; }
+.eyebrow { color: var(--color-brand); font-size: 12px; font-weight: 700; }
+h3 { margin: 6px 0 0; color: var(--color-ink-strong); line-height: 1.5; }
+.state-badge { padding: 6px 10px; white-space: nowrap; font-size: 13px; }
+.baseline-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 4px; color: var(--color-ink-muted); font-size: 13px; }
+.knowledge-points { margin: 6px 0 16px; color: var(--color-ink-muted); font-size: 13px; }
 .actions { display: flex; gap: 10px; margin-top: 16px; }
 .primary, .secondary { padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-.primary { border: 0; background: #167451; color: #fff; }
-.secondary { border: 1px solid #dce5de; background: #fff; color: #17392c; }
 button:disabled { cursor: not-allowed; opacity: .55; }
-.hint { margin: 16px 0 0; padding: 12px; border-radius: 8px; background: #fff8e6; color: #8a5a00; }
-.error-message { color: #b42318; }
-.feedback { margin-top: 18px; padding-top: 16px; border-top: 1px solid #e5eee8; color: #52645a; line-height: 1.6; }
-.feedback strong { color: #17392c; }
+.hint { margin: 16px 0 0; padding: 12px; border-radius: 8px; background: var(--color-warning-soft); color: var(--color-warning); }
+.error-message { color: var(--color-danger); }
+.feedback { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--color-border-subtle); color: var(--color-ink-muted); line-height: 1.6; }
+.feedback strong { color: var(--color-ink-strong); }
 .feedback p { margin: 4px 0; }
-.personalized-placeholder { margin-top: 18px; color: #8a9690; font-size: 12px; }
+.personalized-placeholder { margin-top: 18px; color: var(--color-ink-subtle); font-size: 12px; }
 </style>

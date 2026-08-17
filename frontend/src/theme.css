@@ -1,0 +1,137 @@
+/*
+ * EmbodTeachMS 视觉令牌 —— 全站唯一的设计配置源
+ *
+ * 颜色、间距、圆角、阴影、字号和布局尺寸只在这里维护，作为单一权威来源。
+ * 组件与全局样式都必须引用下面的令牌，不得直接书写十六进制颜色，也不得
+ * 在组件里自建 _new 颜色变量或旧式别名（--green/--red/--amber/--line 等）。
+ * 切换品牌主题时，只需要改这一份文件的对应值。
+ *
+ * 三层样式职责：
+ *   theme.css     —— 只定义令牌，不放置任何组件/布局规则。
+ *   framework.css —— 把令牌落实到跨页面复用的控件与页面骨架。
+ *   styles.css    —— 页面级布局（登录、侧边栏、工作台骨架）与历史样式。
+ */
+:root {
+  color-scheme: light;
+
+  /* 字体与排版 */
+  --font-sans: Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-display: clamp(38px, 4.4vw, 64px);
+  --leading-tight: 1.15;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.75;
+
+  /* 基础色板：深靛蓝负责品牌骨架，科技青负责交互强调。 */
+  --color-ink: #172033;
+  --color-ink-strong: #0f172a;
+  --color-ink-muted: #647184;
+  --color-ink-subtle: #8a96a5;
+  --color-canvas: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef2f6;
+  --color-surface-accent: #edf7f8;
+  --color-border: #dce4eb;
+  --color-border-strong: #c5d1dc;
+  --color-border-subtle: #e9eef3;
+
+  /* 品牌色：避免把成功状态和品牌主色混为一谈。 */
+  --color-brand: #3658d4;
+  --color-brand-strong: #263fa6;
+  --color-brand-soft: #e8edff;
+  --color-brand-contrast: #ffffff;
+  --color-brand-focus: rgb(54 88 212 / 28%);
+  --color-brand-ring: rgb(54 88 212 / 14%);
+  --color-on-brand-faint: rgb(255 255 255 / 8%);
+  --color-on-brand-soft: rgb(255 255 255 / 14%);
+  --color-on-brand-muted: rgb(255 255 255 / 18%);
+  --color-on-brand-border: rgb(255 255 255 / 22%);
+  --color-on-brand-strong: rgb(255 255 255 / 28%);
+  --color-on-brand-copy: rgb(255 255 255 / 76%);
+  --color-on-brand-copy-strong: rgb(255 255 255 / 78%);
+  --color-accent: #0f9f9a;
+  --color-accent-strong: #087b78;
+  --color-accent-soft: #dff6f3;
+  --color-brand-deep: #111a35;
+  --color-brand-glow: #6078e6;
+  --color-on-brand-eyebrow: #aee8e1;
+  --color-on-brand-intro: #dbe4ff;
+  --color-on-deep: #cdd6f8;
+  --color-on-deep-soft: #b8c3ea;
+  --color-on-deep-muted: #94a1d3;
+  --color-deep-active: rgb(117 139 235 / 22%);
+  --color-deep-hover: rgb(117 139 235 / 14%);
+
+  /* 智能体标识色：区分三个具名助手（小A默认 accent，小B蓝，小C琥珀）。 */
+  --color-agent-blue: #3f7896;
+  --color-agent-blue-strong: #27556d;
+  --color-agent-amber: #c58a2d;
+  --color-agent-amber-strong: #925f16;
+
+  /* 语义状态色：仅用于状态，不参与普通装饰。 */
+  --color-success: #16805d;
+  --color-success-soft: #e4f6ee;
+  --color-warning: #a96612;
+  --color-warning-soft: #fff2dc;
+  --color-danger: #c2413d;
+  --color-danger-soft: #fdebea;
+  --color-info: #2878c8;
+  --color-info-soft: #e8f3ff;
+  --color-highlight: #ffe29a;
+  --color-highlight-ink: #674b08;
+
+  /* 间距：页面布局只使用这一组 4px 基准的尺寸。 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* 组件形状 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* 阴影尽量克制：只用来表达层级，不给每个卡片都加浮层感。 */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 5%);
+  --shadow-sm: 0 6px 18px rgb(15 23 42 / 6%);
+  --shadow-md: 0 14px 32px rgb(15 23 42 / 9%);
+  --shadow-lg: 0 24px 60px rgb(15 23 42 / 14%);
+
+  /* 动效 */
+  --motion-fast: 150ms;
+  --motion-normal: 220ms;
+  --ease-standard: cubic-bezier(0.2, 0.75, 0.25, 1);
+
+  /* 框架布局 */
+  --layout-sidebar-width: 240px;
+  --layout-content-max-width: 1280px;
+  --layout-gutter: clamp(20px, 3vw, 40px);
+  --layout-section-gap: 32px;
+  --control-height: 44px;
+  --control-height-sm: 36px;
+}
+
+/*
+ * 断点（文档性约定，媒体查询里按此写实值）：
+ *   --bp-xs: < 560px  窄屏手机
+ *   --bp-sm: 560–760px 手机/小平板
+ *   --bp-md: 760–1100px 平板/小桌面
+ *   --bp-lg: 1100px+   桌面
+ *   --bp-xl: 1400px+   大屏
+ * CSS 媒体查询无法读取自定义属性，因此这些数值只在 `@media` 中按此口径书写。
+ */

@@ -44,33 +44,33 @@ const cardClass = computed(() => [
 .teacher-card strong {
   display: block;
   overflow: hidden;
-  color: #146b4a;
+  color: var(--color-brand);
   font-size: 30px;
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.teacher-card-topic {
-  font-size: 22px !important;
+.teacher-card strong.teacher-card-topic {
+  font-size: 22px;
 }
 
 .learner-metric-card {
   padding: 18px;
-  border: 1px solid #dce3de;
+  border: 1px solid var(--color-border);
   border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 10px 26px rgb(23 57 44 / 5%);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .learner-metric-card strong {
-  color: #146b4a;
+  color: var(--color-brand);
   font-size: 30px;
   letter-spacing: -0.04em;
 }
 
 .learner-metric-card > span:not(.tag) {
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 13px;
 }
 </style>

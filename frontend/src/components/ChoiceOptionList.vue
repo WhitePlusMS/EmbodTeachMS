@@ -67,32 +67,13 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border: 2px solid #dce5de;
-  border-radius: 8px;
+  border-width: 2px;
+  border-style: solid;
   margin-bottom: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: #ffffff;
-}
-
-.option-item:hover:not(.disabled) {
-  border-color: #167451;
-  background: #f8faf9;
-}
-
-.option-item.selected {
-  border-color: #167451;
-  background: #e9f4ee;
-}
-
-.option-item.correct {
-  border-color: #12b76a;
-  background: #f0fdf4;
-}
-
-.option-item.incorrect {
-  border-color: #f04438;
-  background: #fef3f2;
+  transition: border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
 }
 
 .option-item.disabled {
@@ -103,39 +84,40 @@ const emit = defineEmits<{
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #f8faf9;
-  border: 2px solid #dce5de;
+  background: var(--color-surface-muted);
+  border-width: 2px;
+  border-style: solid;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #687970;
+  color: var(--color-ink-muted);
   margin-right: 12px;
   flex-shrink: 0;
 }
 
 .option-item.selected .option-marker {
-  background: #167451;
-  border-color: #167451;
-  color: #ffffff;
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-surface);
 }
 
 .option-item.correct .option-marker {
-  background: #12b76a;
-  border-color: #12b76a;
-  color: #ffffff;
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: var(--color-surface);
 }
 
 .option-item.incorrect .option-marker {
-  background: #f04438;
-  border-color: #f04438;
-  color: #ffffff;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-surface);
 }
 
 .option-content {
   flex: 1;
   font-size: 16px;
-  color: #17392c;
+  color: var(--color-ink-strong);
   line-height: 1.4;
 }
 
@@ -146,12 +128,12 @@ const emit = defineEmits<{
 
 .correct-icon {
   display: block;
-  color: #12b76a;
+  color: var(--color-success);
 }
 
 .incorrect-icon {
   display: block;
-  color: #f04438;
+  color: var(--color-danger);
 }
 
 .options-section.compact {
@@ -164,7 +146,6 @@ const emit = defineEmits<{
   margin-bottom: 0;
   padding: 11px 14px;
   border-width: 1px;
-  border-radius: 8px;
 }
 
 .options-section.compact .option-marker {
@@ -172,18 +153,20 @@ const emit = defineEmits<{
   height: auto;
   min-width: 24px;
   margin-right: 0;
-  border: 0;
+  border-width: 0;
+  border-style: none;
   border-radius: 0;
   background: transparent;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .options-section.compact .option-item.selected .option-marker,
 .options-section.compact .option-item.correct .option-marker,
 .options-section.compact .option-item.incorrect .option-marker {
-  border: 0;
+  border-width: 0;
+  border-style: none;
   background: transparent;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .options-section.compact .option-content {

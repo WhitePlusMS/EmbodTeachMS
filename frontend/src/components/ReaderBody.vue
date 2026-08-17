@@ -189,7 +189,7 @@ const contentSegments = computed<ContentSegment[]>(() => {
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #146b4a;
+  color: var(--color-brand);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: .12em;
@@ -198,7 +198,7 @@ const contentSegments = computed<ContentSegment[]>(() => {
 
 .content-header h1 {
   margin: 0 0 10px;
-  color: #17221d;
+  color: var(--color-ink-strong);
   font-family: Inter, "Microsoft YaHei", sans-serif;
   font-size: clamp(28px, 3vw, 36px);
   font-weight: 900;
@@ -211,20 +211,9 @@ const contentSegments = computed<ContentSegment[]>(() => {
   align-items: center;
 }
 
-.tag {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-
 .content-date {
   font-size: 14px;
-  color: #66736c;
+  color: var(--color-ink-muted);
 }
 
 .content-body {
@@ -233,7 +222,7 @@ const contentSegments = computed<ContentSegment[]>(() => {
 }
 
 .content-text {
-  color: #26382f;
+  color: var(--color-ink-strong);
   font-size: 16px;
   white-space: pre-wrap;
 }
@@ -241,8 +230,6 @@ const contentSegments = computed<ContentSegment[]>(() => {
 .content-text .highlight {
   padding: 1px 3px;
   border-radius: 4px;
-  color: inherit;
-  background: #ffe08a;
   cursor: default;
   font-weight: 700;
 }
@@ -250,16 +237,16 @@ const contentSegments = computed<ContentSegment[]>(() => {
 .concept-box {
   margin: 22px 0;
   padding: 16px 18px;
-  border-left: 4px solid #146b4a;
-  color: #2d4036;
-  background: #eef7f1;
+  border-left: 4px solid var(--color-brand);
+  color: var(--color-ink-strong);
+  background: var(--color-surface-muted);
   font-family: Inter, "Microsoft YaHei", sans-serif;
   line-height: 1.6;
 }
 
 .concept-box p {
   margin: 4px 0 0;
-  color: #66736c;
+  color: var(--color-ink-muted);
   font-size: 13px;
 }
 
@@ -273,44 +260,31 @@ const contentSegments = computed<ContentSegment[]>(() => {
 .completion-section {
   margin-top: 28px;
   padding-top: 18px;
-  border-top: 1px solid #dce3de;
+  border-top: 1px solid var(--color-border);
   text-align: left;
 }
 
 .homework-completion-section {
   margin-top: 28px;
   padding-top: 18px;
-  border-top: 1px solid #dce3de;
+  border-top: 1px solid var(--color-border);
 }
 
 .question-completion-section {
   margin-top: 28px;
   padding-top: 18px;
-  border-top: 1px solid #dce3de;
+  border-top: 1px solid var(--color-border);
 }
 
 .homework-completion-hint {
   margin: 0;
-  color: #687970;
+  color: var(--color-ink-muted);
   font-size: 13px;
 }
 
 .complete-button {
   min-width: 120px;
   font-size: 14px;
-}
-
-.button {
-  min-height: 42px;
-  padding: 9px 17px;
-  border: 0;
-  border-radius: 12px;
-  font-weight: 800;
-}
-
-.button.primary {
-  color: #fff;
-  background: #146b4a;
 }
 
 .completion-status {
@@ -324,8 +298,8 @@ const contentSegments = computed<ContentSegment[]>(() => {
   gap: 8px;
   padding: 9px 13px;
   border-radius: 999px;
-  color: #146b4a;
-  background: #def1e7;
+  color: var(--color-success);
+  background: var(--color-success-soft);
   font-size: 13px;
   font-weight: 800;
 }
@@ -338,10 +312,10 @@ const contentSegments = computed<ContentSegment[]>(() => {
 
 .homework-info {
   padding: 16px;
-  border: 1px solid #dce3de;
+  border: 1px solid var(--color-border);
   border-radius: 14px;
-  color: #2d4036;
-  background: #f6f8f5;
+  color: var(--color-ink-strong);
+  background: var(--color-surface-muted);
   font-family: Inter, "Microsoft YaHei", sans-serif;
   line-height: 1.6;
 }
@@ -353,7 +327,7 @@ const contentSegments = computed<ContentSegment[]>(() => {
 
 .due-date {
   margin-bottom: 8px;
-  color: #9c3d3d;
+  color: var(--color-danger);
   font-weight: 800;
 }
 

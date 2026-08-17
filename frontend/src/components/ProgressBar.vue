@@ -29,14 +29,14 @@ const normalizedValue = computed(() => Math.min(100, Math.max(0, props.value)));
   height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: #e8eee9;
+  background: var(--color-surface-muted);
 }
 
 .progress-bar span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #2d9868;
+  background: var(--color-accent);
   transition: width 0.2s ease;
 }
 </style>

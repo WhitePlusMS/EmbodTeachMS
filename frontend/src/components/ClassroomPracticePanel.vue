@@ -192,8 +192,8 @@ watch(() => props.practiceDetail, (newDetail) => {
 <style scoped>
 .classroom-practice-panel {
   padding: 24px;
-  background: #ffffff;
-  border: 1px solid #dce5de;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   margin-top: 24px;
 }
@@ -202,16 +202,16 @@ watch(() => props.practiceDetail, (newDetail) => {
   margin: 0 0 20px;
   font-size: 18px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
   line-height: 1.5;
 }
 
 .error-message {
-  background: #fef3f2;
-  border: 1px solid #fecdca;
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
   border-radius: 8px;
   padding: 12px 16px;
-  color: #b42318;
+  color: var(--color-danger);
   font-size: 14px;
   margin-bottom: 16px;
 }
@@ -229,26 +229,28 @@ watch(() => props.practiceDetail, (newDetail) => {
   font-weight: 600;
   font-size: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
 }
 
 .submit-button {
-  background: #167451;
-  color: #ffffff;
+  background: var(--color-brand);
+  color: var(--color-brand-contrast);
 }
 
 .submit-button:disabled {
-  background: #dce5de;
-  color: #687970;
+  background: var(--color-border);
+  color: var(--color-ink-muted);
   cursor: not-allowed;
 }
 
 .submit-button:not(:disabled):hover {
-  background: #135e3f;
+  background: var(--color-accent-strong);
 }
 
 .result-section {
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border-subtle);
   padding-top: 20px;
 }
 
@@ -262,11 +264,11 @@ watch(() => props.practiceDetail, (newDetail) => {
 }
 
 .result-status.correct {
-  color: #12b76a;
+  color: var(--color-success);
 }
 
 .result-status.incorrect {
-  color: #f04438;
+  color: var(--color-danger);
 }
 
 .result-icon {
@@ -278,13 +280,13 @@ watch(() => props.practiceDetail, (newDetail) => {
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .explanation p {
   margin: 0;
   font-size: 14px;
-  color: #687970;
+  color: var(--color-ink-muted);
   line-height: 1.5;
 }
 </style>

@@ -359,7 +359,7 @@ const handleCreateClass = () => {
 .eyebrow {
   margin: 0 0 8px;
   font-size: 14px;
-  color: #687970;
+  color: var(--color-ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }

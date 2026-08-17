@@ -22,7 +22,7 @@ withDefaults(defineProps<{
 </template>
 
 <style scoped>
-.teacher-data-table-wrap{overflow-x:auto}.teacher-data-table{width:100%;border-collapse:collapse}.teacher-data-table th,.teacher-data-table td{padding:13px;border-bottom:1px solid #dce3de;text-align:left;white-space:nowrap}.teacher-data-table th{color:#687970;font-size:12px;font-weight:800}.teacher-data-table td{color:#334b40;font-size:13px}
+.teacher-data-table-wrap{overflow-x:auto}.teacher-data-table{width:100%;border-collapse:collapse}.teacher-data-table th,.teacher-data-table td{padding:13px;border-bottom:1px solid var(--color-border);text-align:left;white-space:nowrap}.teacher-data-table th{color:var(--color-ink-muted);font-size:12px;font-weight:800}.teacher-data-table td{color:var(--color-ink-strong);font-size:13px}
 
 /* 业务行来自具名插槽，居中变体必须显式穿透 scoped 边界作用到真实单元格。 */
 .teacher-data-table--centered :deep(th),

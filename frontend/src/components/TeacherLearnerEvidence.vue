@@ -374,77 +374,12 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   margin: 0;
   font-size: 32px;
   font-weight: 700;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .list-info {
   font-size: 14px;
-  color: #687970;
-}
-
-.learners-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.learner-card {
-  width: 100%;
-  padding: 24px;
-  border: 1px solid #dce5de;
-  border-radius: 12px;
-  background: #ffffff;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.learner-card:hover {
-  border-color: #167451;
-  box-shadow: 0 4px 12px rgb(22 116 81 / 8%);
-}
-
-.learner-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: #17392c;
-  margin-bottom: 12px;
-}
-
-.learner-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.completion-rate {
-  font-size: 14px;
-  color: #167451;
-  font-weight: 600;
-}
-
-.weakest-point {
-  font-size: 12px;
-  color: #b42318;
-  background: #fff1f1;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.no-weak-point {
-  font-size: 12px;
-  color: #687970;
-}
-
-.learner-status {
-  font-size: 12px;
-  color: #9aa9a3;
-}
-
-.empty-state {
-  margin-top: 40px;
+  color: var(--color-ink-muted);
 }
 
 /* 详情视图样式 */
@@ -459,22 +394,22 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   margin: 0;
   font-size: 32px;
   font-weight: 700;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .learner-info {
   margin-bottom: 32px;
   padding: 24px;
-  border: 1px solid #dce5de;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .learner-info h2 {
   margin: 0 0 16px;
   font-size: 24px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .info-grid {
@@ -491,14 +426,14 @@ watch(() => props.classId, (newClassId, oldClassId) => {
 
 .info-label {
   font-size: 12px;
-  color: #687970;
+  color: var(--color-ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .info-value {
   font-size: 14px;
-  color: #17392c;
+  color: var(--color-ink-strong);
   font-weight: 600;
 }
 
@@ -507,13 +442,13 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   gap: 12px;
   margin-bottom: 32px;
   padding: 24px;
-  border: 1px solid #dce5de;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
-.simulation-summary h3 { margin: 0; color: #17392c; }
-.simulation-summary-grid { display: flex; flex-wrap: wrap; gap: 16px; color: #167451; font-weight: 600; }
+.simulation-summary h3 { margin: 0; color: var(--color-ink-strong); }
+.simulation-summary-grid { display: flex; flex-wrap: wrap; gap: 16px; color: var(--color-brand); font-weight: 600; }
 
 /* 完成统计样式 */
 .completion-section,
@@ -526,7 +461,7 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   margin: 0 0 20px;
   font-size: 20px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .completion-grid {
@@ -537,21 +472,20 @@ watch(() => props.classId, (newClassId, oldClassId) => {
 
 .completion-card {
   padding: 20px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
-  background: #f8faf9;
+  border-width: 1px;
+  border-style: solid;
 }
 
 .completion-value {
   font-size: 24px;
   font-weight: 600;
-  color: #167451;
+  color: var(--color-brand);
   margin-bottom: 4px;
 }
 
 .completion-label {
   font-size: 12px;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 /* 掌握度摘要样式 */
@@ -567,20 +501,20 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border: 1px solid #dce5de;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .overview-label {
   font-size: 14px;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .overview-value {
   font-size: 16px;
   font-weight: 600;
-  color: #167451;
+  color: var(--color-brand);
 }
 
 .mastery-distribution {
@@ -591,7 +525,7 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   margin: 0 0 16px;
   font-size: 16px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .distribution-grid {
@@ -605,21 +539,21 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   flex-direction: column;
   align-items: center;
   padding: 12px;
-  border: 1px solid #dce5de;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: #f8faf9;
+  background: var(--color-surface-muted);
 }
 
 .distribution-label {
   font-size: 12px;
-  color: #687970;
+  color: var(--color-ink-muted);
   margin-bottom: 4px;
 }
 
 .distribution-value {
   font-size: 16px;
   font-weight: 600;
-  color: #167451;
+  color: var(--color-brand);
 }
 
 /* 知识点详情样式 */
@@ -630,9 +564,8 @@ watch(() => props.classId, (newClassId, oldClassId) => {
 
 .point-card {
   padding: 20px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
-  background: #ffffff;
+  border-width: 1px;
+  border-style: solid;
 }
 
 .point-header {
@@ -646,7 +579,7 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #17392c;
+  color: var(--color-ink-strong);
 }
 
 .mastery-badge {
@@ -657,23 +590,23 @@ watch(() => props.classId, (newClassId, oldClassId) => {
 }
 
 .mastery-badge.unlearned {
-  background: #f2f4f7;
-  color: #667085;
+  background: var(--color-surface-muted);
+  color: var(--color-ink-muted);
 }
 
 .mastery-badge.consolidating {
-  background: #fef0c7;
-  color: #dc6803;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
 }
 
 .mastery-badge.basic_mastery {
-  background: #d1fadf;
-  color: #039855;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .mastery-badge.proficient_mastery {
-  background: #ecfdf3;
-  color: #067647;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .point-stats {
@@ -681,20 +614,20 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   gap: 16px;
   margin-bottom: 12px;
   font-size: 14px;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .latest-evidence {
   margin-top: 12px;
   padding: 12px;
-  border: 1px solid #e4e7ec;
+  border: 1px solid var(--color-border-subtle);
   border-radius: 6px;
-  background: #f9fafb;
+  background: var(--color-surface-muted);
 }
 
 .latest-evidence strong {
   font-size: 14px;
-  color: #17392c;
+  color: var(--color-ink-strong);
   margin-bottom: 8px;
   display: block;
 }
@@ -704,41 +637,22 @@ watch(() => props.classId, (newClassId, oldClassId) => {
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: #687970;
+  color: var(--color-ink-muted);
 }
 
 .no-evidence {
   margin-top: 12px;
   padding: 12px;
-  border: 1px dashed #dce5de;
+  border: 1px dashed var(--color-border);
   border-radius: 6px;
-  background: #f8faf9;
+  background: var(--color-surface-muted);
   text-align: center;
 }
 
 
 .muted {
-  color: #687970;
+  color: var(--color-ink-muted);
   margin: 0;
-}
-
-.button {
-  min-height: 36px;
-  padding: 8px 16px;
-  border: 0;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.button.secondary {
-  color: #17392c;
-  background: #edf3ef;
-}
-
-.button.secondary:hover {
-  background: #dce5de;
 }
 
 .teacher-head {
@@ -750,7 +664,7 @@ watch(() => props.classId, (newClassId, oldClassId) => {
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #146b4a;
+  color: var(--color-brand);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -760,7 +674,7 @@ watch(() => props.classId, (newClassId, oldClassId) => {
 .detail-header h1,
 .list-header h1 {
   margin: 0 0 8px;
-  color: #17392c;
+  color: var(--color-ink-strong);
   font-size: 32px;
 }
 
@@ -779,7 +693,7 @@ watch(() => props.classId, (newClassId, oldClassId) => {
 .link-button {
   padding: 0;
   border: 0;
-  color: #146b4a;
+  color: var(--color-brand);
   background: transparent;
   font: inherit;
   font-weight: 800;
